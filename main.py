@@ -42,9 +42,9 @@ def runBacktestProcess(symbol, strategy):
     return simplifiedResult
 
 if __name__ == "__main__":
-    # symbols = pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')[0]['Symbol'].tolist()
+    symbols = pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')[0]['Symbol'].tolist()
     # print(symbols)
-    symbols = ['AMD', 'NVDA', 'CAT', 'AAPL', 'MSFT', 'GOOG', 'AMZN', 'CSCO', 'QCOM', 'IBM', 'NFLX', 'T']
+    # symbols = ['AMD', 'NVDA', 'CAT', 'AAPL', 'MSFT', 'GOOG', 'AMZN', 'CSCO', 'QCOM', 'IBM', 'NFLX', 'T']
     # symbols = ['AMD', 'NVDA', 'CAT']
     # symbols = ['ES=F', 'GC=F', 'YM=F', 'NQ=F', 'RTY=F', 'SIL=F']
     # strategy = 'dailyRange'

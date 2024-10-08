@@ -30,15 +30,14 @@ def logAggregatedResults(results):
     for result in results:
         if result is not None:
             if equityCurve is None:
-                equityCurve = result['equity_curve']
+                equityCurve = result['equity_curve'] / len(results)
             else:
-                equityCurve += result['equity_curve']
+                equityCurve += result['equity_curve'] / len(results)
 
     if equityCurve is None:
         print("No results to aggregate.")
         return
     
-    equityCurve /= len(results)
     equityCurve.drop('DrawdownDuration', inplace=True, axis=1)
     equityCurve.dropna(inplace=True)
     
