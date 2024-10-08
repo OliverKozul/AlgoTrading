@@ -2,9 +2,6 @@ import yfinance as yf
 import pandas as pd
 import pandas_ta as ta
 
-
-import yfinance as yf
-
 def fetchData(symbol):
     try:
         # Attempt to download data for the given symbol
@@ -117,7 +114,7 @@ def removeDailyRangeColumnsH(df):
 def createDailyRangeSignals(df):
     createBuySignalsDailyRange(df)
 
-def createBuySignalsDailyRange(df, lowPercentage = 25):
+def createBuySignalsDailyRange(df, lowPercentage = 7):
     # Ensure the DataFrame has necessary columns
     required_columns = ['Open', 'High', 'Low', 'Close', 'Date']
     assert all(col in df.columns for col in required_columns), \

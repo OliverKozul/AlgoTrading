@@ -1,20 +1,17 @@
 import logger
 import strategyTester as st
 import dataManipulator as dm
-from multiprocessing import Pool
+from multiprocessing import Pool, Manager
 import pandas as pd
 
-findBest = False
-compareStrategies = True
-
-def runBacktestProcess(symbol, strategy):
+def runBacktestProcess(symbol, strategy, strategies, findBest):
     bestStrategy = strategy
 
     if findBest:
         bestSharpe = 0
-        strategies = ['dailyRange', 'buyAndHold']
+        
 
-        for strategy in strategies:
+        for strategy in strategies.keys():
             result = st.runBacktest(symbol, strategy)
 
             if result is None:
@@ -23,6 +20,8 @@ def runBacktestProcess(symbol, strategy):
             if result['Sharpe Ratio'] > bestSharpe:
                 bestSharpe = result['Sharpe Ratio']
                 bestStrategy = strategy
+        
+        strategies[bestStrategy] += 1
 
     else:
         result = st.runBacktest(symbol, strategy)
@@ -43,26 +42,32 @@ def runBacktestProcess(symbol, strategy):
     return simplifiedResult
 
 if __name__ == "__main__":
+    findBest = False
+    compareStrategies = False
     # symbols = pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')[0]['Symbol'].tolist()
-    # print(symbols)
-    # symbols = ['AMD', 'NVDA', 'CAT', 'AAPL', 'MSFT', 'GOOG', 'AMZN', 'CSCO', 'QCOM', 'IBM', 'NFLX', 'T']
-    symbols = ['AMD', 'NVDA', 'CAT']
-    # symbols = ['ES=F', 'GC=F', 'YM=F', 'NQ=F', 'RTY=F', 'SIL=F']
-    # strategy = 'dailyRange'
-    strategies = ['dailyRange', 'buyAndHold']
-    strategy = 'buyAndHold'
+    symbols = ['AMD', 'NVDA', 'CAT', 'AAPL', 'MSFT', 'GOOG', 'AMZN', 'CSCO', 'QCOM', 'IBM', 'NFLX', 'T']
+    strategy = 'dailyRange'
 
-    # Use Pool to parallelize the backtest process
-    with Pool() as pool:
-        # Run backtest in parallel and get the results
-        if compareStrategies:
-            results = pool.starmap(runBacktestProcess, [(symbol, strategy) for symbol in symbols for strategy in strategies])
+    # Create a multiprocessing manager and shared dictionary for strategies
+    with Manager() as manager:
+        # Shared dict that processes can safely update
+        strategies = manager.dict({'dailyRange': 0, 'buyAndHold': 0})
 
-        else:
-            results = pool.starmap(runBacktestProcess, [(symbol, strategy) for symbol in symbols])
+        # Use Pool to parallelize the backtest process
+        with Pool() as pool:
+            # Run backtest in parallel and get the results
+            if compareStrategies and not findBest:
+                results = pool.starmap(runBacktestProcess, [(symbol, strategy, strategies, findBest) for symbol in symbols for strategy in strategies.keys()])
 
-    # After all backtests are done, log the aggregated results
-    for result in results:
-        logger.logSimple(result)
+            else:
+                results = pool.starmap(runBacktestProcess, [(symbol, strategy, strategies, findBest) for symbol in symbols])
 
-    logger.logAggregatedResults(results)
+        # After all backtests are done, log the aggregated results
+        for result in results:
+            logger.logSimple(result)
+
+        if findBest:
+            logger.compareResults(strategies)
+
+        logger.logAggregatedResults(results)
+        

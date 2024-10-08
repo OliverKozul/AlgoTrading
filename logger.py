@@ -21,6 +21,9 @@ def log(results):
             f"Win Rate: {str(round(backtestResults['Win Rate [%]'], 2)).ljust(5)} |")
 
 def logSimple(result):
+    if result is None:
+        return
+    
     print(f"{str(result['symbol']).ljust(5)} | "
             f"Return: {str(round(result['return'], 2)).ljust(7)}% | "
             f"Max. Drawdown: {str(round(-result['maxDrawdown'], 2)).ljust(5)}% | "
@@ -50,3 +53,7 @@ def logAggregatedResults(results):
     print(f"Return: {round(100 * (equityCurve['Equity'].iloc[-1] - startingBalance) / startingBalance, 2)}%")
     print(f"Maximum aggregated drawdown: {round(equityCurve['DrawdownPct'].max() * 100, 2)}%")
     plotter.plot(equityCurve['Equity'])
+
+def compareResults(strategies):
+    for strategy, count in strategies.items():
+                print(f"Strategy {strategy} was selected {count} times.")
