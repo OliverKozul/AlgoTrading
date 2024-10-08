@@ -22,6 +22,19 @@ def fetchData(symbol):
         print(f"Error fetching data for symbol {symbol}: {e}")
         return None
 
+def generateSimpleResult(symbol, strategy, result):
+    simplifiedResult = {
+        'symbol': symbol,
+        'maxDrawdown': result['Max. Drawdown [%]'],
+        'return': result['Return [%]'],
+        'sharpe': result['Sharpe Ratio'],
+        '# trades': result['# Trades'],
+        'equity_curve': result['_equity_curve'],
+        'strategy': strategy
+    }
+
+    return simplifiedResult
+
 def createSignals(df, strategy):
     if strategy == 'buyAndHold':
         return
@@ -34,6 +47,8 @@ def createSignals(df, strategy):
 
     elif strategy == 'soloRSI':
         createSoloRSISignals(df)
+
+    df.set_index('Date', inplace=True)
 
 # Daily Range Hourly
 
@@ -117,7 +132,7 @@ def removeDailyRangeColumnsH(df):
 def createDailyRangeSignals(df):
     createBuySignalsDailyRange(df)
 
-def createBuySignalsDailyRange(df, lowPercentage = 7):
+def createBuySignalsDailyRange(df, lowPercentage = 10):
     # Ensure the DataFrame has necessary columns
     required_columns = ['Open', 'High', 'Low', 'Close', 'Date']
     assert all(col in df.columns for col in required_columns), \
@@ -141,7 +156,7 @@ def createSoloRSISignals(df):
 def addSoloRSIColumns(df, rsiPeriod = 2):
     df['rsi'] = ta.rsi(df['Close'], length=rsiPeriod)
 
-def createSoloRSIBuySignals(df, rsiThreshold = 25):
+def createSoloRSIBuySignals(df, rsiThreshold = 10):
     # Ensure the DataFrame has necessary columns
     required_columns = ['Open', 'High', 'Low', 'Close', 'Date']
     assert all(col in df.columns for col in required_columns), \
