@@ -16,16 +16,23 @@ def runBacktest(symbol, strategy):
     return results
 
 def gatherBacktestResults(df, strategy):
-    class DailyRange(Strategy):
+    class BuyAndHold(Strategy):
+        def init(self):
+            super().init()
+
+        def next(self):
+            super().next()
+
+            if len(self.trades) == 0:
+                self.buy(size=0.2)
+
+    class DailyRangeH(Strategy):
         mysize = 0.075
         pospow = 0.75
         lastBuy = -1
         tp1 = 1.025
         sl1 = 0.98
         maxTrades = 3
-        bahdd = 0
-        maxPrice = 0
-        closeSize = 0.2
 
         def init(self):
             def SIGNALBUY():
@@ -46,12 +53,6 @@ def gatherBacktestResults(df, strategy):
         def next(self):
             super().next()
 
-            if self.data.Close[-1] > self.maxPrice:
-                self.maxPrice = self.data.Close[-1]
-
-            if 100 * (1 - self.data.Close[-1] / self.maxPrice) > self.bahdd:
-                self.bahdd = 100 * (1 - self.data.Close[-1] / self.maxPrice)
-        
             if self.BUYSignal > 0 and self.lastBuy != self.data.index[-1].day and len(self.trades) < self.maxTrades:
                 widthPercent = self.bbwidth[-1]
 
@@ -72,22 +73,36 @@ def gatherBacktestResults(df, strategy):
                 for trade in self.trades:
                     trade.close()
 
-    class BuyAndHold(Strategy):
+    class DailyRange(Strategy):
+        mysize = 0.1
+
         def init(self):
+            def SIGNALBUY():
+                return df.BUYSignal
+            
             super().init()
+
+            self.BUYSignal = self.I(SIGNALBUY)
 
         def next(self):
             super().next()
 
-            if len(self.trades) == 0:
-                self.buy(size=0.2)
+            if self.BUYSignal > 0:
+                self.buy(size=self.mysize)
+            
+            elif len(self.trades) > 0:
+                for trade in self.trades:
+                    trade.close()
 
     try:
-        if strategy == 'dailyRange':
-            bt = Backtest(df, DailyRange, cash=100000, margin=1/15, commission=0.000)
-
-        elif strategy == 'buyAndHold':
+        if strategy == 'buyAndHold':
             bt = Backtest(df, BuyAndHold, cash=100000, margin=1/15, commission=0.000)
+
+        elif strategy == 'dailyRangeH':
+            bt = Backtest(df, DailyRangeH, cash=100000, margin=1/15, commission=0.000)
+
+        elif strategy == 'dailyRange':
+            bt = Backtest(df, DailyRange, cash=100000, margin=1/15, commission=0.000)
 
     except Exception as e:
         print(f"Error running backtest: {e}")

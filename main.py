@@ -4,7 +4,8 @@ import dataManipulator as dm
 from multiprocessing import Pool
 import pandas as pd
 
-findBest = True
+findBest = False
+compareStrategies = True
 
 def runBacktestProcess(symbol, strategy):
     bestStrategy = strategy
@@ -34,26 +35,34 @@ def runBacktestProcess(symbol, strategy):
         'symbol': symbol,
         'maxDrawdown': result['Max. Drawdown [%]'],
         'return': result['Return [%]'],
+        'sharpe': result['Sharpe Ratio'],
         'equity_curve': result['_equity_curve'],
         'strategy': bestStrategy
     }
-    
-    logger.logSimple(simplifiedResult)  # Log the simplified result
+
     return simplifiedResult
 
 if __name__ == "__main__":
-    symbols = pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')[0]['Symbol'].tolist()
+    # symbols = pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')[0]['Symbol'].tolist()
     # print(symbols)
     # symbols = ['AMD', 'NVDA', 'CAT', 'AAPL', 'MSFT', 'GOOG', 'AMZN', 'CSCO', 'QCOM', 'IBM', 'NFLX', 'T']
-    # symbols = ['AMD', 'NVDA', 'CAT']
+    symbols = ['AMD', 'NVDA', 'CAT']
     # symbols = ['ES=F', 'GC=F', 'YM=F', 'NQ=F', 'RTY=F', 'SIL=F']
     # strategy = 'dailyRange'
+    strategies = ['dailyRange', 'buyAndHold']
     strategy = 'buyAndHold'
 
     # Use Pool to parallelize the backtest process
     with Pool() as pool:
         # Run backtest in parallel and get the results
-        results = pool.starmap(runBacktestProcess, [(symbol, strategy) for symbol in symbols])
+        if compareStrategies:
+            results = pool.starmap(runBacktestProcess, [(symbol, strategy) for symbol in symbols for strategy in strategies])
+
+        else:
+            results = pool.starmap(runBacktestProcess, [(symbol, strategy) for symbol in symbols])
 
     # After all backtests are done, log the aggregated results
+    for result in results:
+        logger.logSimple(result)
+
     logger.logAggregatedResults(results)

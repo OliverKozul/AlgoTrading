@@ -21,7 +21,11 @@ def log(results):
             f"Win Rate: {str(round(backtestResults['Win Rate [%]'], 2)).ljust(5)} |")
 
 def logSimple(result):
-    print(f"{str(result['symbol']).ljust(5)} | Return: {str(round(result['return'], 2)).ljust(7)}% | Max. Drawdown: {str(round(-result['maxDrawdown'], 2)).ljust(5)}% | Strategy: {result['strategy']}")
+    print(f"{str(result['symbol']).ljust(5)} | "
+            f"Return: {str(round(result['return'], 2)).ljust(7)}% | "
+            f"Max. Drawdown: {str(round(-result['maxDrawdown'], 2)).ljust(5)}% | "
+            f"Sharpe: {str(round(result['sharpe'], 2)).ljust(5)} | "
+            f"Strategy: {result['strategy']}")
 
 def logAggregatedResults(results):
     equityCurve = None
