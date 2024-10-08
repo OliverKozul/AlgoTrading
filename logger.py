@@ -33,9 +33,12 @@ def logSimple(result):
 def logAggregatedResults(results):
     equityCurve = None
     startingBalance = 100000
+    tradeCount = 0
 
     for result in results:
         if result is not None:
+            tradeCount += result['# trades']
+
             if equityCurve is None:
                 equityCurve = result['equity_curve'] / len(results)
             else:
@@ -52,8 +55,10 @@ def logAggregatedResults(results):
     print(f"Final aggregated equity: ${round(equityCurve['Equity'].iloc[-1])}")
     print(f"Return: {round(100 * (equityCurve['Equity'].iloc[-1] - startingBalance) / startingBalance, 2)}%")
     print(f"Maximum aggregated drawdown: {round(equityCurve['DrawdownPct'].max() * 100, 2)}%")
+    print(f"Total trades: {tradeCount}")
     plotter.plot(equityCurve['Equity'])
 
 def compareResults(strategies):
+    print()
     for strategy, count in strategies.items():
                 print(f"Strategy {strategy} was selected {count} times.")

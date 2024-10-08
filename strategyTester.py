@@ -24,7 +24,7 @@ def gatherBacktestResults(df, strategy):
             super().next()
 
             if len(self.trades) == 0:
-                self.buy(size=0.2)
+                self.buy(size=0.1)
 
     class DailyRangeH(Strategy):
         mysize = 0.075
@@ -90,7 +90,28 @@ def gatherBacktestResults(df, strategy):
             if self.BUYSignal > 0:
                 self.buy(size=self.mysize)
             
-            elif len(self.trades) > 0:
+            elif len(self.trades) > 0 and self.data.Close[-1] > self.data.Open[-1]:
+                for trade in self.trades:
+                    trade.close()
+
+    class SoloRSI(Strategy):
+        mysize = 0.1
+
+        def init(self):
+            def SIGNALBUY():
+                return df.BUYSignal
+            
+            super().init()
+
+            self.BUYSignal = self.I(SIGNALBUY)
+
+        def next(self):
+            super().next()
+
+            if self.BUYSignal > 0:
+                self.buy(size=self.mysize)
+            
+            elif len(self.trades) > 0 and self.data.Close[-1] > self.data.Open[-1]:
                 for trade in self.trades:
                     trade.close()
 
@@ -103,6 +124,9 @@ def gatherBacktestResults(df, strategy):
 
         elif strategy == 'dailyRange':
             bt = Backtest(df, DailyRange, cash=100000, margin=1/15, commission=0.000)
+
+        elif strategy == 'soloRSI':
+            bt = Backtest(df, SoloRSI, cash=100000, margin=1/15, commission=0.000)
 
     except Exception as e:
         print(f"Error running backtest: {e}")

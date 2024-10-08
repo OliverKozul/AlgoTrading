@@ -23,21 +23,24 @@ def fetchData(symbol):
         return None
 
 def createSignals(df, strategy):
-    if strategy == 'dailyRangeH':
+    if strategy == 'buyAndHold':
+        return
+
+    elif strategy == 'dailyRangeH':
         createDailyRangeSignalsH(df)
 
     elif strategy == 'dailyRange':
         createDailyRangeSignals(df)
-    
-    elif strategy == 'buyAndHold':
-        return
+
+    elif strategy == 'soloRSI':
+        createSoloRSISignals(df)
 
 # Daily Range Hourly
 
 def createDailyRangeSignalsH(df):
     addDailyRangeColumnsH(df)
-    createBuySignalsDailyRangeH(df)
-    createSellSignalsDailyRangeH(df)
+    createDailyRangeHBuySignals(df)
+    createDailyRangeHSellSignals(df)
     removeDailyRangeColumnsH(df)
 
 def addDailyRangeColumnsH(df):
@@ -55,7 +58,7 @@ def addDailyRangeColumnsH(df):
     df['width'] = (df['middleBand'] - df['Close']) / (df['middleBand'] - df['lowerBand'])
     df.dropna(inplace=True)
 
-def createBuySignalsDailyRangeH(df, entry_hour = 7, entry_hour_final = 19, low_percentage=25, period=24):
+def createDailyRangeHBuySignals(df, entry_hour = 7, entry_hour_final = 19, low_percentage=25, period=24):
     # Ensure the DataFrame has necessary columns
     required_columns = ['Open', 'High', 'Low', 'Close', 'Date']
     assert all(col in df.columns for col in required_columns), \
@@ -84,7 +87,7 @@ def createBuySignalsDailyRangeH(df, entry_hour = 7, entry_hour_final = 19, low_p
     df.loc[buySignalCondition1, 'BUYSignal'] = 1
     df.loc[buySignalCondition2, 'BUYSignal'] = 2
 
-def createSellSignalsDailyRangeH(df, highPercentage1=75, highPercentage2=35, exitHour=20, period1=36, period2=12):
+def createDailyRangeHSellSignals(df, highPercentage1=75, highPercentage2=35, exitHour=20, period1=36, period2=12):
     # Ensure the DataFrame has necessary columns
     required_columns = ['Open', 'High', 'Low', 'Close', 'Date']
     assert all(col in df.columns for col in required_columns), \
@@ -129,3 +132,29 @@ def createBuySignalsDailyRange(df, lowPercentage = 7):
     )
 
     df.loc[buySignalCondition, 'BUYSignal'] = 1
+
+def createSoloRSISignals(df):
+    addSoloRSIColumns(df)
+    createSoloRSIBuySignals(df)
+    removeSoloRSIColumns(df)
+
+def addSoloRSIColumns(df, rsiPeriod = 2):
+    df['rsi'] = ta.rsi(df['Close'], length=rsiPeriod)
+
+def createSoloRSIBuySignals(df, rsiThreshold = 25):
+    # Ensure the DataFrame has necessary columns
+    required_columns = ['Open', 'High', 'Low', 'Close', 'Date']
+    assert all(col in df.columns for col in required_columns), \
+        "DataFrame must contain 'Open', 'High', 'Low', 'Close', 'Date' columns."
+
+    # Initialize the 'BUYSignal' column with default values (0)
+    df['BUYSignal'] = 0
+
+    # Create the condition for buy signals
+    buySignalCondition = (df['rsi'] < rsiThreshold)
+
+    # Apply the condition to the 'BUYSignal' column
+    df.loc[buySignalCondition, 'BUYSignal'] = 1
+
+def removeSoloRSIColumns(df):
+    df.drop(columns=['rsi'], inplace=True)

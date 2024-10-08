@@ -35,6 +35,7 @@ def runBacktestProcess(symbol, strategy, strategies, findBest):
         'maxDrawdown': result['Max. Drawdown [%]'],
         'return': result['Return [%]'],
         'sharpe': result['Sharpe Ratio'],
+        '# trades': result['# Trades'],
         'equity_curve': result['_equity_curve'],
         'strategy': bestStrategy
     }
@@ -42,16 +43,16 @@ def runBacktestProcess(symbol, strategy, strategies, findBest):
     return simplifiedResult
 
 if __name__ == "__main__":
-    findBest = False
+    findBest = True
     compareStrategies = False
     # symbols = pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')[0]['Symbol'].tolist()
     symbols = ['AMD', 'NVDA', 'CAT', 'AAPL', 'MSFT', 'GOOG', 'AMZN', 'CSCO', 'QCOM', 'IBM', 'NFLX', 'T']
-    strategy = 'dailyRange'
+    strategy = 'soloRSI'
 
     # Create a multiprocessing manager and shared dictionary for strategies
     with Manager() as manager:
         # Shared dict that processes can safely update
-        strategies = manager.dict({'dailyRange': 0, 'buyAndHold': 0})
+        strategies = manager.dict({'dailyRange': 0, 'buyAndHold': 0, 'soloRSI': 0})
 
         # Use Pool to parallelize the backtest process
         with Pool() as pool:
