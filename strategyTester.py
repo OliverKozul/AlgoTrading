@@ -1,18 +1,19 @@
 from backtesting import Strategy
 from backtesting import Backtest
-import re
 import dataManipulator as dm
+import pandas_ta as ta
 
 def runBacktest(symbol, strategy, startPercent = 0, endPercent = 1):
     df = dm.fetchData(symbol)
+    
+    if df is None:
+        return None
+    
     startIndex = int(startPercent * len(df))
     endIndex = int(endPercent * len(df))
     df = df.iloc[startIndex:endIndex]
     size = 0.75
 
-    if df is None:
-        return None
-    
     dm.createSignals(df, strategy)
     results = gatherBacktestResults(df, strategy, size)
     
@@ -124,14 +125,26 @@ def gatherBacktestResults(df, strategy, size):
             def SIGNALBUY():
                 return df.BUYSignal
             
+            def ATR():
+                return ta.atr(df.High, df.Low, df.Close, length=14)
+            
             super().init()
 
             self.BUYSignal = self.I(SIGNALBUY)
+            self.atr = self.I(ATR)
 
         def next(self):
             super().next()
 
             if self.BUYSignal > 0:
+                # buySize = size * (self.data.Close[-1] / (30 * self.atr[-1]))
+
+                # if buySize < 0.01:
+                #     buySize = 0.01
+
+                # elif buySize > 1:
+                #     buySize = 0.99
+
                 self.buy(size=size)
             
             elif len(self.trades) > 0 and self.data.Close[-1] > self.data.Open[-1]:

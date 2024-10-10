@@ -34,13 +34,17 @@ def logAggregatedResults(results):
     equityCurve = None
     startingBalance = 100000
     tradeCount = 0
+    sharpeSum = 0
 
     for result in results:
         if result is not None:
             tradeCount += result['# trades']
+            result['equity_curve'].drop('DrawdownDuration', inplace=True, axis=1)
+            sharpeSum += result['sharpe']
 
             if equityCurve is None:
                 equityCurve = result['equity_curve'] / len(results)
+
             else:
                 equityCurve += result['equity_curve'] / len(results)
 
@@ -48,13 +52,13 @@ def logAggregatedResults(results):
         print("No results to aggregate.")
         return
     
-    equityCurve.drop('DrawdownDuration', inplace=True, axis=1)
     equityCurve.dropna(inplace=True)
     
     print()
     print(f"Final aggregated equity: ${round(equityCurve['Equity'].iloc[-1])}")
     print(f"Return: {round(100 * (equityCurve['Equity'].iloc[-1] - startingBalance) / startingBalance, 2)}%")
     print(f"Maximum aggregated drawdown: {round(equityCurve['DrawdownPct'].max() * 100, 2)}%")
+    print(f"Average Sharpe Ratio: {round(sharpeSum / len(results), 2)}")
     print(f"Total trades: {tradeCount}")
     plotter.plot(equityCurve['Equity'])
 

@@ -148,6 +148,8 @@ def createBuySignalsDailyRange(df, lowPercentage = 10):
 
     df.loc[buySignalCondition, 'BUYSignal'] = 1
 
+# Solo RSI
+
 def createSoloRSISignals(df):
     addSoloRSIColumns(df)
     createSoloRSIBuySignals(df)

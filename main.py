@@ -8,11 +8,11 @@ import pandas as pd
 if __name__ == "__main__":
     findBest = False
     compareStrategies = False
-    adaptiveStrategy = True
+    adaptiveStrategy = False
     # symbols = pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')[0]['Symbol'].tolist()
-    # symbols = ['AMD', 'NVDA', 'CAT', 'AAPL', 'MSFT', 'GOOG', 'AMZN', 'CSCO', 'QCOM', 'IBM', 'NFLX', 'T']
-    symbols = ['AMD', 'NVDA', 'CAT']
-    strategy = 'soloRSI'
+    # symbols = ['AMD', 'NVDA', 'CAT']
+    symbols = ['AMD', 'NVDA', 'COST']
+    strategy = 'dailyRange'
 
     # Create a multiprocessing manager and shared dictionary for strategies
     with Manager() as manager:
@@ -32,7 +32,7 @@ if __name__ == "__main__":
                 results = pool.starmap(st.runAdaptiveBacktest, [(symbol, strategies) for symbol in symbols])
 
             else:
-                results = pool.starmap(st.runBacktestProcess, [(symbol, strategy, strategies, findBest, adaptiveStrategy) for symbol in symbols])
+                results = pool.starmap(st.runBacktestProcess, [(symbol, strategy) for symbol in symbols])
 
         # After all backtests are done, log the aggregated results
         for result in results:
