@@ -5,7 +5,7 @@ import pandas_ta as ta
 def fetchData(symbol):
     try:
         # Attempt to download data for the given symbol
-        df = yf.download(symbol, period='2y', interval='1d', progress=False)
+        df = yf.download(symbol, period='max', interval='1d', progress=False)
         
         # Check if the dataframe is empty (if data could not be fetched)
         if df.empty:
@@ -127,9 +127,9 @@ def removeDailyRangeColumnsH(df):
 # Daily Range
 
 def createDailyRangeSignals(df):
-    createBuySignalsDailyRange(df)
+    createDailyRangeBuySignals(df)
 
-def createBuySignalsDailyRange(df, lowPercentage = 10):
+def createDailyRangeBuySignals(df, lowPercentage = 10):
     # Ensure the DataFrame has necessary columns
     required_columns = ['Open', 'High', 'Low', 'Close', 'Date']
     assert all(col in df.columns for col in required_columns), \
