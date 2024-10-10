@@ -6,12 +6,12 @@ import pandas as pd
 
 
 if __name__ == "__main__":
-    findBest = False
+    findBest = True
     compareStrategies = False
     adaptiveStrategy = False
-    # symbols = pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')[0]['Symbol'].tolist()
+    symbols = pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')[0]['Symbol'].tolist()
     # symbols = ['AMD', 'NVDA', 'CAT']
-    symbols = ['AMD', 'NVDA', 'COST']
+    # symbols = ['AMD', 'NVDA', 'COST']
     strategy = 'dailyRange'
 
     # Create a multiprocessing manager and shared dictionary for strategies

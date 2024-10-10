@@ -46,7 +46,12 @@ def findBestBacktest(symbol, strategies, startPercent = 0, endPercent = 1):
             bestSharpe = result['Sharpe Ratio']
             bestStrategy = strategy
     
-    strategies[bestStrategy] += 1
+    if bestStrategy is not None:
+        strategies[bestStrategy] += 1
+
+    else:
+        return None
+
     simplifiedResult = dm.generateSimpleResult(symbol, bestStrategy, bestResult)
 
     return simplifiedResult

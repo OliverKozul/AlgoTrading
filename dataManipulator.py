@@ -36,10 +36,7 @@ def generateSimpleResult(symbol, strategy, result):
     return simplifiedResult
 
 def createSignals(df, strategy):
-    if strategy == 'buyAndHold':
-        return
-
-    elif strategy == 'dailyRangeH':
+    if strategy == 'dailyRangeH':
         createDailyRangeSignalsH(df)
 
     elif strategy == 'dailyRange':
