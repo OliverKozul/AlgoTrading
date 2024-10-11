@@ -127,60 +127,13 @@ def gatherBacktestResults(df, strategy, size, plot):
             if len(self.trades) == 0:
                 self.buy(size=size)
 
-    class DailyRangeH(Strategy):
-        mysize = 0.075
-        pospow = 0.75
-        lastBuy = -1
-        tp1 = 1.025
-        sl1 = 0.98
-        maxTrades = 3
-
-        def init(self):
-            def SIGNALBUY():
-                return df.BUYSignal
-
-            def SIGNALSELL():
-                return df.SELLSignal
-            
-            def BBWidth():
-                return df.width
-            
-            super().init()
-
-            self.BUYSignal = self.I(SIGNALBUY)
-            self.SELLSignal = self.I(SIGNALSELL)
-            self.bbwidth = self.I(BBWidth)
-
-        def next(self):
-            super().next()
-
-            if self.BUYSignal > 0 and self.lastBuy != self.data.index[-1].day and len(self.trades) < self.maxTrades:
-                widthPercent = self.bbwidth[-1]
-
-                if widthPercent < 0:
-                    widthPercent = -widthPercent
-
-                widthPercent = min(1 / widthPercent, 2)
-                size = self.mysize * widthPercent * self.pospow
-                self.lastBuy = self.data.index[-1].day
-                
-                if size < 0.01:
-                    size = 0.01
-
-                if size < 1:
-                    self.buy(size=size, sl=self.data.Close[-1] * self.sl1, tp=self.data.Close[-1] * self.tp1)
-            
-            if len(self.trades) > 0 and self.SELLSignal > 0:
-                for trade in self.trades:
-                    trade.close()
-
     class DailyRange(Strategy):
         def init(self):
             def SIGNALBUY():
                 return df.BUYSignal
             
             def ATR():
-                return ta.atr(df.High, df.Low, df.Close, length=14)
+                return df.atr
             
             super().init()
 
@@ -191,13 +144,13 @@ def gatherBacktestResults(df, strategy, size, plot):
             super().next()
 
             if len(self.trades) == 0 and self.BUYSignal > 0:
-                # buySize = size * (self.data.Close[-1] / (30 * self.atr[-1]))
+                buySize = size * (self.data.Close[-1] / (30 * self.atr[-1]))
 
-                # if buySize < 0.01:
-                #     buySize = 0.01
+                if buySize < 0.01:
+                    buySize = 0.01
 
-                # elif buySize > 1:
-                #     buySize = 0.99
+                elif buySize > 1:
+                    buySize = 0.99
 
                 self.buy(size=size)
             
@@ -239,7 +192,7 @@ def gatherBacktestResults(df, strategy, size, plot):
     class ROC(Strategy):
         maxPrice = -1
         stopLoss = -1
-        atrCoef = 3
+        atrCoef = 6
 
         def init(self):
             def SIGNALBUY():
@@ -279,9 +232,6 @@ def gatherBacktestResults(df, strategy, size, plot):
     try:
         if strategy == 'buyAndHold':
             bt = Backtest(df, BuyAndHold, cash=100000, margin=1/1, commission=0.0001)
-
-        elif strategy == 'dailyRangeH':
-            bt = Backtest(df, DailyRangeH, cash=100000, margin=1/1, commission=0.0001)
 
         elif strategy == 'dailyRange':
             bt = Backtest(df, DailyRange, cash=100000, margin=1/1, commission=0.0001)

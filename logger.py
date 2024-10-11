@@ -68,3 +68,6 @@ def compareResults(strategies):
     print()
     for strategy, count in strategies.items():
                 print(f"Strategy {strategy} was selected {count} times.")
+
+    mostSelectedStrategy = max(strategies, key=strategies.get)
+    print(f"\nThe most selected strategy is {mostSelectedStrategy}, chosen {strategies[mostSelectedStrategy]} times.")
