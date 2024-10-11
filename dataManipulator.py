@@ -5,7 +5,7 @@ import pandas_ta as ta
 def fetchData(symbol):
     try:
         # Attempt to download data for the given symbol
-        df = yf.download(symbol, period='max', interval='1d', progress=False)
+        df = yf.download(symbol, period='5y', interval='1d', progress=False)
         
         # Check if the dataframe is empty (if data could not be fetched)
         if df.empty:
@@ -22,6 +22,15 @@ def fetchData(symbol):
         print(f"Error fetching data for symbol {symbol}: {e}")
         return None
 
+def loadSymbols(index):
+    if index == 'SP':
+        return pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')[0]['Symbol'].tolist()
+    
+    else:
+        print("Invalid index specified.")
+        return None
+
+
 def generateSimpleResult(symbol, strategy, result):
     simplifiedResult = {
         'symbol': symbol,
@@ -29,6 +38,7 @@ def generateSimpleResult(symbol, strategy, result):
         'return': result['Return [%]'],
         'sharpe': result['Sharpe Ratio'],
         '# trades': result['# Trades'],
+        'avgTradeDuration': result['Avg. Trade Duration'],
         'equity_curve': result['_equity_curve'],
         'strategy': strategy
     }
@@ -44,6 +54,9 @@ def createSignals(df, strategy):
 
     elif strategy == 'soloRSI':
         createSoloRSISignals(df)
+
+    elif strategy == 'rocTrendFollowing':
+        createROCTrendFollowingSignals(df)
 
     df.set_index('Date', inplace=True)
 
@@ -154,6 +167,8 @@ def createSoloRSISignals(df):
 
 def addSoloRSIColumns(df, rsiPeriod = 2):
     df['rsi'] = ta.rsi(df['Close'], length=rsiPeriod)
+    df['atr'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
+    df.dropna(inplace=True)
 
 def createSoloRSIBuySignals(df, rsiThreshold = 10):
     # Ensure the DataFrame has necessary columns
@@ -172,3 +187,33 @@ def createSoloRSIBuySignals(df, rsiThreshold = 10):
 
 def removeSoloRSIColumns(df):
     df.drop(columns=['rsi'], inplace=True)
+
+# ROC Trendfollowing
+
+def createROCTrendFollowingSignals(df):
+    addROCTrendFollowingColumns(df)
+    createROCTrendFollowingBuySignals(df)
+    removeROCTrendFollowingColumns(df)
+
+def addROCTrendFollowingColumns(df, rocPeriod = 60):
+    df['roc'] = ta.roc(df['Close'], length=rocPeriod)
+    df['atr'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
+    df.dropna(inplace=True)
+
+def createROCTrendFollowingBuySignals(df, rocThreshold = 25):
+    # Ensure the DataFrame has necessary columns
+    required_columns = ['Open', 'High', 'Low', 'Close', 'Date']
+    assert all(col in df.columns for col in required_columns), \
+        "DataFrame must contain 'Open', 'High', 'Low', 'Close', 'Date' columns."
+
+    # Initialize the 'BUYSignal' column with default values (0)
+    df['BUYSignal'] = 0
+
+    # Create the condition for buy signals
+    buySignalCondition = (df['roc'] > rocThreshold)
+
+    # Apply the condition to the 'BUYSignal' column
+    df.loc[buySignalCondition, 'BUYSignal'] = 1
+
+def removeROCTrendFollowingColumns(df):
+    df.drop(columns=['roc'], inplace=True)

@@ -1,4 +1,5 @@
 import plotter
+import numpy as np
 
 def log(results):
     backtestResults = results
@@ -37,16 +38,15 @@ def logAggregatedResults(results):
     sharpeSum = 0
 
     for result in results:
-        if result is not None:
-            tradeCount += result['# trades']
-            result['equity_curve'].drop('DrawdownDuration', inplace=True, axis=1)
-            sharpeSum += result['sharpe']
+        tradeCount += result['# trades']
+        result['equity_curve'].drop('DrawdownDuration', inplace=True, axis=1)
+        sharpeSum += result['sharpe']
 
-            if equityCurve is None:
-                equityCurve = result['equity_curve'] / len(results)
+        if equityCurve is None:
+            equityCurve = result['equity_curve'] / len(results)
 
-            else:
-                equityCurve += result['equity_curve'] / len(results)
+        else:
+            equityCurve += result['equity_curve'] / len(results)
 
     if equityCurve is None:
         print("No results to aggregate.")
@@ -60,6 +60,8 @@ def logAggregatedResults(results):
     print(f"Maximum aggregated drawdown: {round(equityCurve['DrawdownPct'].max() * 100, 2)}%")
     print(f"Average Sharpe Ratio: {round(sharpeSum / len(results), 2)}")
     print(f"Total trades: {tradeCount}")
+    print(f"Average trade duration: {round(np.mean([result['avgTradeDuration'].days for result in results]), 2)} days")
+    print(f"Strategy was implemented on {len(results)} symbols.")
     plotter.plot(equityCurve['Equity'])
 
 def compareResults(strategies):

@@ -1,9 +1,54 @@
+import dataManipulator as dm
+import logger
 from backtesting import Strategy
 from backtesting import Backtest
-import dataManipulator as dm
 import pandas_ta as ta
+from multiprocessing import Pool, Manager
+import json
 
-def runBacktest(symbol, strategy, startPercent = 0, endPercent = 1):
+
+def runMasterBacktest(symbols, strategy):
+    with open('config.json', 'r') as file:
+        config = json.load(file)
+
+    if config['plotResults'] and len(symbols) > 10:
+        print("Too many symbols to plot results for.")
+
+    # Create a multiprocessing manager and shared dictionary for strategies
+    with Manager() as manager:
+        # Shared dict that processes can safely update
+        strategies = manager.dict({'dailyRange': 0, 'buyAndHold': 0, 'soloRSI': 0, 'rocTrendFollowing': 0})
+
+        # Use Pool to parallelize the backtest process
+        with Pool() as pool:
+            # Run backtest in parallel and get the results
+            if config['compareStrategies']:
+                results = pool.starmap(runBacktestProcess, [(symbol, strategy) for symbol in symbols for strategy in strategies.keys()])
+
+            elif config['findBest']:
+                results = pool.starmap(findBestBacktest, [(symbol, strategies) for symbol in symbols])
+
+            elif config['adaptiveStrategy']:
+                results = pool.starmap(runAdaptiveBacktest, [(symbol, strategies) for symbol in symbols])
+
+            else:
+                results = pool.starmap(runBacktestProcess, [(symbol, strategy) for symbol in symbols])
+
+        # After all backtests are done, log the aggregated results
+        results = [result for result in results if result is not None]
+
+        if config['sortResults']:
+            results = sorted(results, key=lambda x: x[config['sortingCriteria']], reverse=True)
+
+        for result in results:
+            logger.logSimple(result)
+
+        if config['findBest']:
+            logger.compareResults(strategies)
+
+        logger.logAggregatedResults(results)
+
+def runBacktest(symbol, strategy, startPercent = 0, endPercent = 1, plot = False):
     df = dm.fetchData(symbol)
     
     if df is None:
@@ -15,8 +60,12 @@ def runBacktest(symbol, strategy, startPercent = 0, endPercent = 1):
     size = 0.75
 
     dm.createSignals(df, strategy)
-    results = gatherBacktestResults(df, strategy, size)
+    results = gatherBacktestResults(df, strategy, size, plot)
     
+    if results is None:
+        print(f"Backtest for {symbol} with strategy -{strategy}- failed or no trades were made.")
+        return None
+
     return results
 
 def runBacktestProcess(symbol, strategy):
@@ -67,7 +116,7 @@ def runAdaptiveBacktest(symbol, strategies, startPercent = 0, endPercent = 0.5):
 
     return simplifiedResult
 
-def gatherBacktestResults(df, strategy, size):
+def gatherBacktestResults(df, strategy, size, plot):
     class BuyAndHold(Strategy):
         def init(self):
             super().init()
@@ -141,7 +190,7 @@ def gatherBacktestResults(df, strategy, size):
         def next(self):
             super().next()
 
-            if self.BUYSignal > 0:
+            if len(self.trades) == 0 and self.BUYSignal > 0:
                 # buySize = size * (self.data.Close[-1] / (30 * self.atr[-1]))
 
                 # if buySize < 0.01:
@@ -161,17 +210,69 @@ def gatherBacktestResults(df, strategy, size):
             def SIGNALBUY():
                 return df.BUYSignal
             
+            def ATR():
+                return df.atr
+            
             super().init()
 
             self.BUYSignal = self.I(SIGNALBUY)
+            self.atr = self.I(ATR)
 
         def next(self):
             super().next()
 
-            if self.BUYSignal > 0:
-                self.buy(size=size)
+            if len(self.trades) == 0 and self.BUYSignal > 0:
+                buySize = size * (self.data.Close[-1] / (30 * self.atr[-1]))
+
+                if buySize < 0.01:
+                    buySize = 0.01
+
+                elif buySize > 1:
+                    buySize = 0.99
+
+                self.buy(size=buySize)
             
             elif len(self.trades) > 0 and self.data.Close[-1] > self.data.Open[-1]:
+                for trade in self.trades:
+                    trade.close()
+
+    class ROC(Strategy):
+        maxPrice = -1
+        stopLoss = -1
+        atrCoef = 3
+
+        def init(self):
+            def SIGNALBUY():
+                return df.BUYSignal
+            
+            def ATR():
+                return df.atr
+            
+            super().init()
+
+            self.BUYSignal = self.I(SIGNALBUY)
+            self.atr = self.I(ATR)
+
+        def next(self):
+            super().next()
+
+            if len(self.trades) > 0 and self.data.Close[-1] > self.maxPrice:
+                self.maxPrice = self.data.Close[-1]
+                self.stopLoss = self.data.Close[-1] - (self.atr[-1] * self.atrCoef)
+
+            if len(self.trades) == 0 and self.BUYSignal > 0:
+                buySize = size * (self.data.Close[-1] / (30 * self.atr[-1]))
+
+                if buySize < 0.01:
+                    buySize = 0.01
+
+                elif buySize > 1:
+                    buySize = 0.99
+
+                self.buy(size=buySize)
+                self.stopLoss = self.data.Close[-1] - (self.atr[-1] * self.atrCoef)
+            
+            elif len(self.trades) > 0 and self.data.Close[-1] < self.stopLoss:
                 for trade in self.trades:
                     trade.close()
 
@@ -188,9 +289,19 @@ def gatherBacktestResults(df, strategy, size):
         elif strategy == 'soloRSI':
             bt = Backtest(df, SoloRSI, cash=100000, margin=1/1, commission=0.0001)
 
+        elif strategy == 'rocTrendFollowing':
+            bt = Backtest(df, ROC, cash=100000, margin=1/1, commission=0.0001)
+
     except Exception as e:
         print(f"Error running backtest: {e}")
         return None
         
     results = bt.run()
+
+    if plot:
+        bt.plot(resample=False)
+
+    if results['# Trades'] == 0:
+        return None
+    
     return results
