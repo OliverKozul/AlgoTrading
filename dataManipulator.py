@@ -54,7 +54,7 @@ def createSignals(df, strategy):
 
     elif strategy == 'rocTrendFollowing':
         createROCTrendFollowingSignals(df)
-
+    
     df.set_index('Date', inplace=True)
 
 # Daily Range
@@ -71,15 +71,14 @@ def addDailyRangeColumns(df):
 
 def createDailyRangeBuySignals(df, lowPercentage = 10):
     # Ensure the DataFrame has necessary columns
-    required_columns = ['Open', 'High', 'Low', 'Close', 'Date']
+    required_columns = ['Open', 'High', 'Low', 'Close', 'Date', 'currentPercent']
     assert all(col in df.columns for col in required_columns), \
-        "DataFrame must contain 'Open', 'High', 'Low', 'Close', 'Date' columns."
+        "DataFrame must contain 'Open', 'High', 'Low', 'Close', 'Date', 'currentPercent' columns."
     
-    # Initialize the 'BUYSignal' column with default values (0)
-    df['BUYSignal'] = 0
+    # Create the condition for buy signals
+    buySignalCondition = (df['currentPercent'] <= lowPercentage)
 
-    buySignalCondition = df['currentPercent'] <= lowPercentage
-
+    # Apply the condition to the 'BUYSignal' column
     df.loc[buySignalCondition, 'BUYSignal'] = 1
 
 def removeDailyRangeColumns(df):
@@ -99,12 +98,9 @@ def addSoloRSIColumns(df, rsiPeriod = 2):
 
 def createSoloRSIBuySignals(df, rsiThreshold = 10):
     # Ensure the DataFrame has necessary columns
-    required_columns = ['Open', 'High', 'Low', 'Close', 'Date']
+    required_columns = ['Open', 'High', 'Low', 'Close', 'Date', 'rsi']
     assert all(col in df.columns for col in required_columns), \
-        "DataFrame must contain 'Open', 'High', 'Low', 'Close', 'Date' columns."
-
-    # Initialize the 'BUYSignal' column with default values (0)
-    df['BUYSignal'] = 0
+        "DataFrame must contain 'Open', 'High', 'Low', 'Close', 'Date', 'rsi' columns."
 
     # Create the condition for buy signals
     buySignalCondition = (df['rsi'] < rsiThreshold)
@@ -129,13 +125,10 @@ def addROCTrendFollowingColumns(df, rocPeriod = 60):
 
 def createROCTrendFollowingBuySignals(df, rocThreshold = 30):
     # Ensure the DataFrame has necessary columns
-    required_columns = ['Open', 'High', 'Low', 'Close', 'Date']
+    required_columns = ['Open', 'High', 'Low', 'Close', 'Date', 'roc']
     assert all(col in df.columns for col in required_columns), \
-        "DataFrame must contain 'Open', 'High', 'Low', 'Close', 'Date' columns."
-
-    # Initialize the 'BUYSignal' column with default values (0)
-    df['BUYSignal'] = 0
-
+        "DataFrame must contain 'Open', 'High', 'Low', 'Close', 'Date', 'roc' columns."
+    
     # Create the condition for buy signals
     buySignalCondition = (df['roc'] > rocThreshold)
 

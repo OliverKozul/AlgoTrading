@@ -1,5 +1,6 @@
 import plotter
 import numpy as np
+import pandas as pd
 
 def log(results):
     backtestResults = results
@@ -32,22 +33,15 @@ def logSimple(result):
             f"Strategy: {result['strategy']}")
 
 def logAggregatedResults(results):
-    equityCurve = None
+    equityCurve = pd.DataFrame()
     startingBalance = 100000
-    tradeCount = 0
-    sharpeSum = 0
+    tradeCount = sum(result['# trades'] for result in results)
+    sharpeSum = sum(result['sharpe'] for result in results)
 
-    for result in results:
-        tradeCount += result['# trades']
-        result['equity_curve'].drop('DrawdownDuration', inplace=True, axis=1)
-        sharpeSum += result['sharpe']
+    equityCurve['DrawdownPct'] = sum(result['equity_curve']['DrawdownPct'] for result in results) / len(results)
+    equityCurve['Equity'] = sum(result['equity_curve']['Equity'] for result in results) / len(results)
 
-        if equityCurve is None:
-            equityCurve = result['equity_curve'] / len(results)
-
-        else:
-            equityCurve += result['equity_curve'] / len(results)
-
+    # Kinda sus
     if equityCurve is None:
         print("No results to aggregate.")
         return

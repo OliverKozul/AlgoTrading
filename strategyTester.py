@@ -3,7 +3,7 @@ import logger
 from backtesting import Strategy
 from backtesting import Backtest
 import pandas_ta as ta
-from multiprocessing import Pool, Manager
+from multiprocessing import Pool, Manager, cpu_count
 import json
 
 
@@ -20,7 +20,7 @@ def runMasterBacktest(symbols, strategy):
         strategies = manager.dict({'dailyRange': 0, 'buyAndHold': 0, 'soloRSI': 0, 'rocTrendFollowing': 0})
 
         # Use Pool to parallelize the backtest process
-        with Pool() as pool:
+        with Pool(min(len(symbols), cpu_count())) as pool:
             # Run backtest in parallel and get the results
             if config['compareStrategies']:
                 results = pool.starmap(runBacktestProcess, [(symbol, strategy) for symbol in symbols for strategy in strategies.keys()])
