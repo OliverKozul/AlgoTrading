@@ -26,6 +26,9 @@ def loadSymbols(index):
     if index == 'SP':
         return pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')[0]['Symbol'].tolist()
     
+    elif index == 'R2000':
+        return pd.read_csv('R2000.csv').iloc[:, 0].tolist()
+    
     else:
         print("Invalid index specified.")
         return None

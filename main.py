@@ -3,7 +3,7 @@ import dataManipulator as dm
 
 
 if __name__ == "__main__":
-    symbols = dm.loadSymbols('SP')
+    symbols = dm.loadSymbols('R2000')
     # symbols = ['AMD', 'NVDA', 'CAT']
     # symbols = ['TER']
 
