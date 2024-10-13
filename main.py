@@ -7,7 +7,7 @@ if __name__ == "__main__":
     # symbols = ['AMD', 'NVDA', 'CAT']
     # symbols = ['TER']
 
-    strategy = 'dailyRange'
+    strategy = 'rocTrendFollowingBear'
 
     st.runMasterBacktest(symbols, strategy)
         

@@ -55,8 +55,11 @@ def createSignals(df, strategy):
     elif strategy == 'soloRSI':
         createSoloRSISignals(df)
 
-    elif strategy == 'rocTrendFollowing':
-        createROCTrendFollowingSignals(df)
+    elif strategy == 'rocTrendFollowingBull':
+        createROCTrendFollowingBullSignals(df)
+
+    elif strategy == 'rocTrendFollowingBear':
+        createROCTrendFollowingBearSignals(df)
     
     df.set_index('Date', inplace=True)
 
@@ -114,19 +117,19 @@ def createSoloRSIBuySignals(df, rsiThreshold = 10):
 def removeSoloRSIColumns(df):
     df.drop(columns=['rsi'], inplace=True)
 
-# ROC Trendfollowing
+# ROC Trendfollowing Bull
 
-def createROCTrendFollowingSignals(df):
-    addROCTrendFollowingColumns(df)
-    createROCTrendFollowingBuySignals(df)
-    removeROCTrendFollowingColumns(df)
+def createROCTrendFollowingBullSignals(df):
+    addROCTrendFollowingBullColumns(df)
+    createROCTrendFollowingBullBuySignals(df)
+    removeROCTrendFollowingBullColumns(df)
 
-def addROCTrendFollowingColumns(df, rocPeriod = 60):
+def addROCTrendFollowingBullColumns(df, rocPeriod = 60):
     df['roc'] = ta.roc(df['Close'], length=rocPeriod)
     df['atr'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
     df.dropna(inplace=True)
 
-def createROCTrendFollowingBuySignals(df, rocThreshold = 30):
+def createROCTrendFollowingBullBuySignals(df, rocThreshold = 30):
     # Ensure the DataFrame has necessary columns
     required_columns = ['Open', 'High', 'Low', 'Close', 'Date', 'roc']
     assert all(col in df.columns for col in required_columns), \
@@ -138,5 +141,33 @@ def createROCTrendFollowingBuySignals(df, rocThreshold = 30):
     # Apply the condition to the 'BUYSignal' column
     df.loc[buySignalCondition, 'BUYSignal'] = 1
 
-def removeROCTrendFollowingColumns(df):
+def removeROCTrendFollowingBullColumns(df):
     df.drop(columns=['roc'], inplace=True)
+
+# ROC Trendfollowing Bear
+
+def createROCTrendFollowingBearSignals(df):
+    addROCTrendFollowingBearColumns(df)
+    createROCTrendFollowingBearBuySignals(df)
+    removeROCTrendFollowingBearColumns(df)
+
+def addROCTrendFollowingBearColumns(df, rocPeriod = 60):
+    df['roc'] = ta.roc(df['Close'], length=rocPeriod)
+    df['atr'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
+    df.dropna(inplace=True)
+
+def createROCTrendFollowingBearBuySignals(df, rocThreshold = -30):
+    # Ensure the DataFrame has necessary columns
+    required_columns = ['Open', 'High', 'Low', 'Close', 'Date', 'roc']
+    assert all(col in df.columns for col in required_columns), \
+        "DataFrame must contain 'Open', 'High', 'Low', 'Close', 'Date', 'roc' columns."
+    
+    # Create the condition for buy signals
+    buySignalCondition = (df['roc'] < rocThreshold)
+
+    # Apply the condition to the 'BUYSignal' column
+    df.loc[buySignalCondition, 'BUYSignal'] = 1
+
+def removeROCTrendFollowingBearColumns(df):
+    df.drop(columns=['roc'], inplace=True)
+
