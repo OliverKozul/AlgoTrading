@@ -60,6 +60,9 @@ def createSignals(df, strategy):
 
     elif strategy == 'rocTrendFollowingBear':
         createROCTrendFollowingBearSignals(df)
+
+    elif strategy == 'rocMeanReversion':
+        createROCMeanReversionSignals(df)
     
     df.set_index('Date', inplace=True)
 
@@ -171,3 +174,29 @@ def createROCTrendFollowingBearBuySignals(df, rocThreshold = -30):
 def removeROCTrendFollowingBearColumns(df):
     df.drop(columns=['roc'], inplace=True)
 
+# ROC Mean Reversion
+
+def createROCMeanReversionSignals(df):
+    addROCMeanReversionColumns(df)
+    createROCMeanReversionBuySignals(df)
+    removeROCMeanReversionColumns(df)
+
+def addROCMeanReversionColumns(df, rocPeriod = 14):
+    df['roc'] = ta.roc(df['Close'], length=rocPeriod)
+    df['atr'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
+    df.dropna(inplace=True)
+
+def createROCMeanReversionBuySignals(df, rocThreshold = -5):
+    # Ensure the DataFrame has necessary columns
+    required_columns = ['Open', 'High', 'Low', 'Close', 'Date', 'roc']
+    assert all(col in df.columns for col in required_columns), \
+        "DataFrame must contain 'Open', 'High', 'Low', 'Close', 'Date', 'roc' columns."
+    
+    # Create the condition for buy signals
+    buySignalCondition = (df['roc'] < rocThreshold)
+
+    # Apply the condition to the 'BUYSignal' column
+    df.loc[buySignalCondition, 'BUYSignal'] = 1
+
+def removeROCMeanReversionColumns(df):
+    df.drop(columns=['roc'], inplace=True)

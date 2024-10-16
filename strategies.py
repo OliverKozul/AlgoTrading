@@ -154,6 +154,43 @@ def loadStrategy(strategy, df, size):
                 for trade in self.trades:
                     trade.close()
 
+    class ROCMeanReversion(Strategy):
+        def init(self):
+            def SIGNALBUY():
+                return df.BUYSignal
+            
+            def ATR():
+                return df.atr
+            
+            super().init()
+
+            self.BUYSignal = self.I(SIGNALBUY)
+            self.atr = self.I(ATR)
+
+        def next(self):
+            super().next()
+            if len(self.trades) == 0 and self.BUYSignal > 0:
+                buySize = size
+
+                if buySize < 0.01:
+                    buySize = 0.01
+
+                elif buySize > 1:
+                    buySize = 0.99
+
+                tp = self.data.Close[-1] + self.atr[-1]
+                sl = self.data.Close[-1] - self.atr[-1]
+
+                if sl < 0:
+                    sl = 0.01
+
+                self.buy(size=buySize, tp=tp, sl=sl)
+            
+            if len(self.trades) > 0:
+                for trade in self.trades:
+                    if (self.data.index[-1]-trade.entry_time).days > 20:
+                        trade.close()
+
     if strategy == 'buyAndHold':
             return BuyAndHold
 
@@ -168,3 +205,6 @@ def loadStrategy(strategy, df, size):
 
     elif strategy == 'rocTrendFollowingBear':
         return ROCBear
+    
+    elif strategy == 'rocMeanReversion':
+        return ROCMeanReversion

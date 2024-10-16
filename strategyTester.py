@@ -16,7 +16,7 @@ def runMasterBacktest(symbols, strategy):
     # Create a multiprocessing manager and shared dictionary for strategies
     with Manager() as manager:
         # Shared dict that processes can safely update
-        strategies = manager.dict({'dailyRange': 0, 'buyAndHold': 0, 'soloRSI': 0, 'rocTrendFollowingBull': 0, 'rocTrendFollowingBear': 0})
+        strategies = manager.dict({'dailyRange': 0, 'buyAndHold': 0, 'soloRSI': 0, 'rocTrendFollowingBull': 0, 'rocTrendFollowingBear': 0, 'rocMeanReversion': 0})
 
         # Use Pool to parallelize the backtest process
         with Pool(min(len(symbols), cpu_count())) as pool:
