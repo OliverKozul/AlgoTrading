@@ -1,13 +1,12 @@
-import strategyTester as st
 import dataManipulator as dm
+import strategyTester as st
 
 
 if __name__ == "__main__":
-    symbols = dm.loadSymbols('SP')
-    # symbols = ['AMD', 'NVDA', 'CAT']
+    # symbols = dm.loadSymbols('SP')
+    symbols = ['AMD', 'NVDA', 'CAT']
     # symbols = ['TER']
 
-    strategy = 'rocMeanReversion'
+    strategy = 'soloRSI'
 
     st.runMasterBacktest(symbols, strategy)
-        

@@ -13,6 +13,7 @@ def runMasterBacktest(symbols, strategy):
     if config['plotResults'] and len(symbols) > 10:
         print("Too many symbols to plot results for.")
 
+
     # Create a multiprocessing manager and shared dictionary for strategies
     with Manager() as manager:
         # Shared dict that processes can safely update
@@ -22,16 +23,16 @@ def runMasterBacktest(symbols, strategy):
         with Pool(min(len(symbols), cpu_count())) as pool:
             # Run backtest in parallel and get the results
             if config['compareStrategies']:
-                results = pool.starmap(runBacktestProcess, [(symbol, strategy) for symbol in symbols for strategy in strategies.keys()])
+                results = pool.starmap(runBacktestProcess, [(symbol, strategy, config['plotResults']) for symbol in symbols for strategy in strategies.keys()])
 
             elif config['findBest']:
-                results = pool.starmap(findBestBacktest, [(symbol, strategies) for symbol in symbols])
+                results = pool.starmap(findBestBacktest, [(symbol, strategies, config['plotResults']) for symbol in symbols])
 
             elif config['adaptiveStrategy']:
-                results = pool.starmap(runAdaptiveBacktest, [(symbol, strategies) for symbol in symbols])
+                results = pool.starmap(runAdaptiveBacktest, [(symbol, strategies, config['plotResults']) for symbol in symbols])
 
             else:
-                results = pool.starmap(runBacktestProcess, [(symbol, strategy) for symbol in symbols])
+                results = pool.starmap(runBacktestProcess, [(symbol, strategy, config['plotResults']) for symbol in symbols])
 
         # After all backtests are done, log the aggregated results
         results = [result for result in results if result is not None]
@@ -47,7 +48,7 @@ def runMasterBacktest(symbols, strategy):
 
         logger.logAggregatedResults(results)
 
-def runBacktest(symbol, strategy, startPercent = 0, endPercent = 1, plot = False):
+def runBacktest(symbol, strategy, plot = False, startPercent = 0, endPercent = 1):
     df = dm.fetchData(symbol)
     
     if df is None:
@@ -67,8 +68,8 @@ def runBacktest(symbol, strategy, startPercent = 0, endPercent = 1, plot = False
 
     return results
 
-def runBacktestProcess(symbol, strategy):
-    result = runBacktest(symbol, strategy)
+def runBacktestProcess(symbol, strategy, plot = False):
+    result = runBacktest(symbol, strategy, plot)
     
     if result is None:
         return None
@@ -78,13 +79,13 @@ def runBacktestProcess(symbol, strategy):
 
     return simplifiedResult
 
-def findBestBacktest(symbol, strategies, startPercent = 0, endPercent = 1):
+def findBestBacktest(symbol, strategies, plot = False, startPercent = 0, endPercent = 1):
     bestStrategy = None
     bestResult = None
     bestSharpe = 0
 
     for strategy in strategies.keys():
-        result = runBacktest(symbol, strategy, startPercent, endPercent)
+        result = runBacktest(symbol, strategy, plot, startPercent, endPercent)
 
         if result is None:
             return None
@@ -104,18 +105,18 @@ def findBestBacktest(symbol, strategies, startPercent = 0, endPercent = 1):
 
     return simplifiedResult
 
-def runAdaptiveBacktest(symbol, strategies, startPercent = 0, endPercent = 0.5):
-    strategy = findBestBacktest(symbol, strategies, startPercent, endPercent)['strategy']
+def runAdaptiveBacktest(symbol, strategies, plot = False, startPercent = 0, endPercent = 0.5):
+    strategy = findBestBacktest(symbol, strategies, plot, startPercent, endPercent)['strategy']
 
     if strategy is None:
         return None
     
-    result = runBacktest(symbol, strategy, endPercent, 1)
+    result = runBacktest(symbol, strategy, plot, endPercent, 1)
     simplifiedResult = dm.generateSimpleResult(symbol, strategy, result)
 
     return simplifiedResult
 
-def gatherBacktestResults(df, strategy, size, plot):
+def gatherBacktestResults(df, strategy, size, plot = False):
     try:
         bt = Backtest(df, strategies.loadStrategy(strategy, df, size), cash=100000, margin=1/1, commission=0.0001)
 
@@ -124,6 +125,7 @@ def gatherBacktestResults(df, strategy, size, plot):
         return None
         
     results = bt.run()
+    print(plot)
 
     if plot:
         bt.plot(resample=False)
