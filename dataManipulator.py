@@ -200,31 +200,3 @@ def createROCMeanReversionBuySignals(df, rocThreshold = -5):
 
 def removeROCMeanReversionColumns(df):
     df.drop(columns=['roc'], inplace=True)
-
-# gg
-
-def createggSignals(df):
-    addggColumns(df)
-    createggBuySignals(df)
-    removeggColumns(df)
-
-def addggColumns(df):
-    df['atr'] = some_function(df['Close'], length=Input(value='atr-length'))  # Update this line accordingly
-
-    pass
-
-def createggBuySignals(df):
-    # Ensure the DataFrame has necessary columns
-    required_columns = ['Open', 'High', 'Low', 'Close', 'Date']  # Add required columns here
-    assert all(col in df.columns for col in required_columns),         "DataFrame must contain 'Open', 'High', 'Low', 'Close', 'Date' columns."
-    
-    # Create buy signal conditions
-    buySignalCondition_atr = (df['atr'] Input(value='atr-logic'))
-
-    # Combine all buy signals (example logic, adjust as needed)
-    df['BUYSignal'] = buySignalCondition_roc | buySignalCondition_atr | buySignalCondition_ema  # Combine conditions
-    pass
-
-def removeggColumns(df):
-    # Remove any temporary columns if needed
-    pass
