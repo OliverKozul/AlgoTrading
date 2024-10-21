@@ -48,8 +48,8 @@ def runMasterBacktest(symbols, strategy):
 
         logger.logAggregatedResults(results)
 
-def runBacktest(symbol, strategy, plot = False, startPercent = 0, endPercent = 1):
-    df = dm.fetchData(symbol)
+def runBacktest(symbol, strategy, start = None, end = None, plot = False, startPercent = 0, endPercent = 1):
+    df = dm.fetchData(symbol, start=start, end=end)
     
     if df is None:
         return None
@@ -125,7 +125,6 @@ def gatherBacktestResults(df, strategy, size, plot = False):
         return None
         
     results = bt.run()
-    print(plot)
 
     if plot:
         bt.plot(resample=False)

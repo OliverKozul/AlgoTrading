@@ -2,7 +2,7 @@
     "findBest": false,
     "compareStrategies": false,
     "adaptiveStrategy": false,
-    "plotResults": true,
+    "plotResults": false,
     "sortResults": false,
     "sortingCriteria": "sharpe"
   }
