@@ -1,6 +1,7 @@
 import yfinance as yf
 import pandas as pd
 import pandas_ta as ta
+import re
 
 def fetchData(symbol, start = None, end = None):
     try:
@@ -33,6 +34,9 @@ def loadSymbols(index):
         print("Invalid index specified.")
         return None
 
+def camelCaseToName(camelCaseStr):
+    # Add a space before each capital letter and capitalize the first letter of the string
+    return re.sub(r'([a-z])([A-Z])', r'\1 \2', camelCaseStr).title()
 
 def generateSimpleResult(symbol, strategy, result):
     simplifiedResult = {
@@ -49,25 +53,18 @@ def generateSimpleResult(symbol, strategy, result):
     return simplifiedResult
 
 def createSignals(df, strategy):
-    if strategy == 'buyAndHold':
-        createBuyAndHoldSignals(df)
+    signal_functions = {
+        'buyAndHold': createBuyAndHoldSignals,
+        'dailyRange': createDailyRangeSignals,
+        'soloRSI': createSoloRSISignals,
+        'rocTrendFollowingBull': createROCTrendFollowingBullSignals,
+        'rocTrendFollowingBear': createROCTrendFollowingBearSignals,
+        'rocMeanReversion': createROCMeanReversionSignals
+    }
 
-    elif strategy == 'dailyRange':
-        createDailyRangeSignals(df)
-
-    elif strategy == 'soloRSI':
-        createSoloRSISignals(df)
-
-    elif strategy == 'rocTrendFollowingBull':
-        createROCTrendFollowingBullSignals(df)
-
-    elif strategy == 'rocTrendFollowingBear':
-        createROCTrendFollowingBearSignals(df)
-
-    elif strategy == 'rocMeanReversion':
-        createROCMeanReversionSignals(df)
-    
+    signal_functions.get(strategy, lambda x: None)(df)
     df.set_index('Date', inplace=True)
+
 
 def createBuyAndHoldSignals(df):
     df['BUYSignal'] = 1

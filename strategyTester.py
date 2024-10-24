@@ -6,18 +6,22 @@ from multiprocessing import Pool, Manager, cpu_count
 import json
 import strategies
 
+
+def loadStrategiesFromJson(file_path):
+    with open(file_path, 'r') as file:
+        return json.load(file)
+
 def runMasterBacktest(symbols, strategy):
     with open('config.json', 'r') as file:
         config = json.load(file)
 
     if config['plotResults'] and len(symbols) > 10:
         print("Too many symbols to plot results for.")
-
-
+        
     # Create a multiprocessing manager and shared dictionary for strategies
     with Manager() as manager:
         # Shared dict that processes can safely update
-        strategies = manager.dict({'dailyRange': 0, 'buyAndHold': 0, 'soloRSI': 0, 'rocTrendFollowingBull': 0, 'rocTrendFollowingBear': 0, 'rocMeanReversion': 0})
+        strategies = manager.dict(loadStrategiesFromJson('strategies.json'))
 
         # Use Pool to parallelize the backtest process
         with Pool(min(len(symbols), cpu_count())) as pool:

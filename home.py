@@ -9,6 +9,7 @@ app = Dash(__name__, suppress_callback_exceptions=True)
 
 # Load all S&P 500 symbols
 symbols = dm.loadSymbols('SP')
+strategiesDict = st.loadStrategiesFromJson('strategies.json')
 
 # Get current year
 current_year = datetime.today().year
@@ -20,24 +21,6 @@ app.layout = html.Div([
     ]),
     html.Div(id='tabs-content')
 ])
-# Define the available strategies (including community strategies)
-available_strategies = [
-    {'label': 'Buy and Hold', 'value': 'buyAndHold'},
-    {'label': 'Daily Range', 'value': 'dailyRange'},
-    {'label': 'Solo RSI', 'value': 'soloRSI'},
-    {'label': 'ROC Trend Following Bull', 'value': 'rocTrendFollowingBull'},
-    {'label': 'ROC Trend Following Bear', 'value': 'rocTrendFollowingBear'},
-    {'label': 'ROC Mean Reversion', 'value': 'rocMeanReversion'}
-]
-
-# Add community strategies
-community_strategies = [
-    {'label': 'Community Strategy 1', 'value': 'communityStrategy1'},
-    {'label': 'Community Strategy 2', 'value': 'communityStrategy2'}
-]
-
-# Combine the two lists for the dropdown
-all_strategies = available_strategies + community_strategies
 
 backtest_layout = html.Div([
     html.H1("Backtest Results"),
@@ -58,12 +41,8 @@ backtest_layout = html.Div([
         dcc.Dropdown(
             id="strategy-dropdown-official",
             options=[
-                {'label': 'Buy and Hold', 'value': 'buyAndHold'},
-                {'label': 'Daily Range', 'value': 'dailyRange'},
-                {'label': 'Solo RSI', 'value': 'soloRSI'},
-                {'label': 'ROC Trend Following Bull', 'value': 'rocTrendFollowingBull'},
-                {'label': 'ROC Trend Following Bear', 'value': 'rocTrendFollowingBear'},
-                {'label': 'ROC Mean Reversion', 'value': 'rocMeanReversion'}
+                {'label': dm.camelCaseToName(key), 'value': key}
+                for key in strategiesDict.keys()
             ],
             multi=True,  # Allow multiple selections
             value=['buyAndHold'],  # Default selection
