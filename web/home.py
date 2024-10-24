@@ -1,15 +1,15 @@
 from dash import Dash, dcc, html, Input, Output
-import strategyTester as st
+import strategies.strategyTester as st
 import plotly.graph_objs as go
-import dataManipulator as dm
+import core.dataManipulator as dm
 from datetime import datetime
-from strategyCreator import create_strategy_creator_layout, register_callbacks  # Import new functions
+from web.strategyCreator import create_strategy_creator_layout, register_callbacks
 
 app = Dash(__name__, suppress_callback_exceptions=True)
 
 # Load all S&P 500 symbols
 symbols = dm.loadSymbols('SP')
-strategiesDict = st.loadStrategiesFromJson('strategies.json')
+strategiesDict = st.loadStrategiesFromJson('strategies\strategies.json')
 
 # Get current year
 current_year = datetime.today().year

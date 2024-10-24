@@ -1,7 +1,7 @@
-import dataManipulator as dm
-import logger
+import core.dataManipulator as dm
+import core.logger as logger
+import strategies.strats as strats
 from backtesting import Backtest
-import pandas_ta as ta
 from multiprocessing import Pool, Manager, cpu_count
 import json
 import strategies
@@ -12,7 +12,7 @@ def loadStrategiesFromJson(file_path):
         return json.load(file)
 
 def runMasterBacktest(symbols, strategy):
-    with open('config.json', 'r') as file:
+    with open('data\config.json', 'r') as file:
         config = json.load(file)
 
     if config['plotResults'] and len(symbols) > 10:
@@ -21,7 +21,7 @@ def runMasterBacktest(symbols, strategy):
     # Create a multiprocessing manager and shared dictionary for strategies
     with Manager() as manager:
         # Shared dict that processes can safely update
-        strategies = manager.dict(loadStrategiesFromJson('strategies.json'))
+        strategies = manager.dict(loadStrategiesFromJson('strategies\strategies.json'))
 
         # Use Pool to parallelize the backtest process
         with Pool(min(len(symbols), cpu_count())) as pool:
@@ -122,7 +122,7 @@ def runAdaptiveBacktest(symbol, strategies, plot = False, startPercent = 0, endP
 
 def gatherBacktestResults(df, strategy, size, plot = False):
     try:
-        bt = Backtest(df, strategies.loadStrategy(strategy, df, size), cash=100000, margin=1/1, commission=0.0001)
+        bt = Backtest(df, strats.loadStrategy(strategy, df, size), cash=100000, margin=1/1, commission=0.0001)
 
     except Exception as e:
         print(f"Error running backtest: {e}")

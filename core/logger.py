@@ -1,4 +1,4 @@
-import plotter
+import core.plotter as plotter
 import numpy as np
 import pandas as pd
 

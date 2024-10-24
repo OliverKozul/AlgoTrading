@@ -31,12 +31,12 @@ To run this project locally, you need the following:
 2. Install the required dependencies:
 
     ```bash
-    pip install -r requirements.txt
+    pip install -r docs/requirements.txt
     ```
 3. Due to a known bug in pandas_ta edit NaN -> nan in line 2 of pandas_ta/momentum/squeeze_pro.py
 4. Run the app:
    ```bash
-   python home.py
+   python -m web.home
    ```
 
 ## Usage
