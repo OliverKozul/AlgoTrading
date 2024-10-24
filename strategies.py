@@ -1,210 +1,151 @@
 from backtesting import Strategy
 
+dataframe = None
+tradeSize = 0
 
+# Strategy loader function
 def loadStrategy(strategy, df, size):
-    class BuyAndHold(Strategy):
-            def init(self):
-                super().init()
+    strategies = {
+        'buyAndHold': BuyAndHold,
+        'dailyRange': DailyRange,
+        'soloRSI': SoloRSI,
+        'rocTrendFollowingBull': ROCBull,
+        'rocTrendFollowingBear': ROCBear,
+        'rocMeanReversion': ROCMeanReversion
+    }
 
-            def next(self):
-                super().next()
-
-                if len(self.trades) == 0:
-                    self.buy(size=size)
-
-    class DailyRange(Strategy):
-        def init(self):
-            def SIGNALBUY():
-                return df.BUYSignal
-            
-            def ATR():
-                return df.atr
-            
-            super().init()
-
-            self.BUYSignal = self.I(SIGNALBUY)
-            self.atr = self.I(ATR)
-
-        def next(self):
-            super().next()
-
-            if len(self.trades) == 0 and self.BUYSignal > 0:
-                buySize = size * (self.data.Close[-1] / (30 * self.atr[-1]))
-
-                if buySize < 0.01:
-                    buySize = 0.01
-
-                elif buySize > 1:
-                    buySize = 0.99
-
-                self.buy(size=size)
-            
-            elif len(self.trades) > 0 and self.data.Close[-1] > self.data.Open[-1]:
-                for trade in self.trades:
-                    trade.close()
-
-    class SoloRSI(Strategy):
-        def init(self):
-            def SIGNALBUY():
-                return df.BUYSignal
-            
-            def ATR():
-                return df.atr
-            
-            super().init()
-
-            self.BUYSignal = self.I(SIGNALBUY)
-            self.atr = self.I(ATR)
-
-        def next(self):
-            super().next()
-
-            if len(self.trades) == 0 and self.BUYSignal > 0:
-                buySize = size * (self.data.Close[-1] / (30 * self.atr[-1]))
-
-                if buySize < 0.01:
-                    buySize = 0.01
-
-                elif buySize > 1:
-                    buySize = 0.99
-
-                self.buy(size=buySize)
-            
-            elif len(self.trades) > 0 and self.data.Close[-1] > self.data.Open[-1]:
-                for trade in self.trades:
-                    trade.close()
-
-    class ROCBull(Strategy):
-        maxPrice = -1
-        stopLoss = -1
-        atrCoef = 6
-
-        def init(self):
-            def SIGNALBUY():
-                return df.BUYSignal
-            
-            def ATR():
-                return df.atr
-            
-            super().init()
-
-            self.BUYSignal = self.I(SIGNALBUY)
-            self.atr = self.I(ATR)
-
-        def next(self):
-            super().next()
-
-            if len(self.trades) > 0 and self.data.Close[-1] > self.maxPrice:
-                self.maxPrice = self.data.Close[-1]
-                self.stopLoss = self.data.Close[-1] - (self.atr[-1] * self.atrCoef)
-
-            if len(self.trades) == 0 and self.BUYSignal > 0:
-                buySize = size * (self.data.Close[-1] / (30 * self.atr[-1]))
-
-                if buySize < 0.01:
-                    buySize = 0.01
-
-                elif buySize > 1:
-                    buySize = 0.99
-
-                self.buy(size=buySize)
-                self.stopLoss = self.data.Close[-1] - (self.atr[-1] * self.atrCoef)
-            
-            if len(self.trades) > 0 and self.data.Close[-1] < self.stopLoss:
-                for trade in self.trades:
-                    trade.close()
-
-    class ROCBear(Strategy):
-        minPrice = int(1e9)
-        stopLoss = -1
-        atrCoef = 6
-
-        def init(self):
-            def SIGNALBUY():
-                return df.BUYSignal
-            
-            def ATR():
-                return df.atr
-            
-            super().init()
-
-            self.BUYSignal = self.I(SIGNALBUY)
-            self.atr = self.I(ATR)
-
-        def next(self):
-            super().next()
-
-            if len(self.trades) > 0 and self.data.Close[-1] < self.minPrice:
-                self.minPrice = self.data.Close[-1]
-                self.stopLoss = self.data.Close[-1] + (self.atr[-1] * self.atrCoef)
-
-            if len(self.trades) == 0 and self.BUYSignal > 0:
-                buySize = size * (self.data.Close[-1] / (30 * self.atr[-1]))
-
-                if buySize < 0.01:
-                    buySize = 0.01
-
-                elif buySize > 1:
-                    buySize = 0.99
-
-                self.sell(size=buySize)
-                self.stopLoss = self.data.Close[-1] - (self.atr[-1] * self.atrCoef)
-            
-            elif len(self.trades) > 0 and self.data.Close[-1] > self.stopLoss:
-                for trade in self.trades:
-                    trade.close()
-
-    class ROCMeanReversion(Strategy):
-        def init(self):
-            def SIGNALBUY():
-                return df.BUYSignal
-            
-            def ATR():
-                return df.atr
-            
-            super().init()
-
-            self.BUYSignal = self.I(SIGNALBUY)
-            self.atr = self.I(ATR)
-
-        def next(self):
-            super().next()
-            if len(self.trades) == 0 and self.BUYSignal > 0:
-                buySize = size
-
-                if buySize < 0.01:
-                    buySize = 0.01
-
-                elif buySize > 1:
-                    buySize = 0.99
-
-                tp = self.data.Close[-1] + self.atr[-1]
-                sl = self.data.Close[-1] - self.atr[-1]
-
-                if sl < 0:
-                    sl = 0.01
-
-                self.buy(size=buySize, tp=tp, sl=sl)
-            
-            if len(self.trades) > 0:
-                for trade in self.trades:
-                    if (self.data.index[-1]-trade.entry_time).days > 20:
-                        trade.close()
-
-    if strategy == 'buyAndHold':
-            return BuyAndHold
-
-    elif strategy == 'dailyRange':
-        return DailyRange
-
-    elif strategy == 'soloRSI':
-        return SoloRSI
-
-    elif strategy == 'rocTrendFollowingBull':
-        return ROCBull
-
-    elif strategy == 'rocTrendFollowingBear':
-        return ROCBear
+    if strategy not in strategies:
+        raise ValueError(f"Unknown strategy: {strategy}")
     
-    elif strategy == 'rocMeanReversion':
-        return ROCMeanReversion
+    global dataframe
+    global tradeSize
+    dataframe = df
+    tradeSize = size
+
+    return strategies[strategy]
+
+# Base class for strategies that use ATR and BUYSignal
+class BaseStrategy(Strategy):
+    def init(self):
+        super().init()
+
+        def SIGNALBUY():
+            return self.df.BUYSignal
+
+        def ATR():
+            return self.df.atr
+
+        global dataframe
+        global tradeSize
+        self.df = dataframe
+        self.size = tradeSize
+        self.BUYSignal = self.I(SIGNALBUY)
+        self.atr = self.I(ATR)
+        self.tpCoef = 2
+        self.slCoef = 2
+
+    def next(self):
+        if len(self.trades) == 0 and self.BUYSignal > 0:
+            buySize = self.calculateBuySize()
+            self.buy(size=buySize)
+
+    def nextWithTPSL(self):
+        if len(self.trades) == 0 and self.BUYSignal > 0:
+            buySize = self.calculateBuySize()
+            tp = self.data.Close[-1] + self.tpCoef * self.atr[-1]
+            sl = max(0.01, self.data.Close[-1] - self.slCoef * self.atr[-1])
+            self.buy(size=buySize, tp=tp, sl=sl)
+
+    def closeNextGreenDay(self):
+        if len(self.trades) > 0 and self.data.Close[-1] > self.data.Open[-1]:
+            for trade in self.trades:
+                trade.close()
+
+    def calculateBuySize(self):
+        buySize = self.size * (self.data.Close[-1] / (30 * self.atr[-1]))
+        return max(0.01, min(buySize, 0.99))
+    
+class TrailingStopLossStrategy(BaseStrategy):
+    def init(self):
+        super().init()
+        self.stopLoss = -1
+        self.maxPrice = -1
+        self.minPrice = float('inf')
+        self.atrCoef = 6  # Can be customized in child classes
+
+    def updateTrailingStop(self):
+        if len(self.trades) > 0:
+            trade = self.trades[0]
+            
+            if trade.is_long:  # Long position trailing stop
+                if self.data.Close[-1] > self.maxPrice:
+                    self.maxPrice = self.data.Close[-1]
+                    self.stopLoss = self.data.Close[-1] - (self.atr[-1] * self.atrCoef)
+
+            elif trade.is_short:  # Short position trailing stop
+                if self.data.Close[-1] < self.minPrice:
+                    self.minPrice = self.data.Close[-1]
+                    self.stopLoss = self.data.Close[-1] + (self.atr[-1] * self.atrCoef)
+
+    def closeTradesIfNeeded(self):
+        for trade in self.trades:
+            # Close long trades if price drops below the stop loss
+            if trade.is_long and self.data.Close[-1] < self.stopLoss:
+                trade.close()
+
+            # Close short trades if price rises above the stop loss
+            elif trade.is_short and self.data.Close[-1] > self.stopLoss:
+                trade.close()
+
+    def next(self):
+        super().next()
+        self.updateTrailingStop()
+        self.closeTradesIfNeeded()
+
+
+# Buy and Hold strategy
+class BuyAndHold(BaseStrategy):
+    def next(self):
+        if len(self.trades) == 0:
+            self.buy(size=self.size)
+
+# Daily Range strategy
+class DailyRange(BaseStrategy):
+    def next(self):
+        super().closeNextGreenDay()
+        super().next()
+
+# Solo RSI strategy
+class SoloRSI(BaseStrategy):
+    def next(self):
+        super().closeNextGreenDay()
+        super().next()
+
+# ROC Trend Following Bull strategy
+class ROCBull(TrailingStopLossStrategy):
+    def init(self):
+        super().init()
+        self.atrCoef = 6
+
+    def next(self):
+        super().next()
+
+# ROC Trend Following Bear strategy
+class ROCBear(TrailingStopLossStrategy):
+    def init(self):
+        super().init()
+        self.atrCoef = 6
+
+    def next(self):
+        super().next()
+        
+
+# ROC Mean Reversion strategy
+class ROCMeanReversion(BaseStrategy):
+    def init(self):
+        super().init()
+        self.tpCoef = 1
+        self.slCoef = 1
+
+    def next(self):
+        super().nextWithTPSL()

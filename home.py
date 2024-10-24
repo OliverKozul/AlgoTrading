@@ -20,10 +20,29 @@ app.layout = html.Div([
     ]),
     html.Div(id='tabs-content')
 ])
+# Define the available strategies (including community strategies)
+available_strategies = [
+    {'label': 'Buy and Hold', 'value': 'buyAndHold'},
+    {'label': 'Daily Range', 'value': 'dailyRange'},
+    {'label': 'Solo RSI', 'value': 'soloRSI'},
+    {'label': 'ROC Trend Following Bull', 'value': 'rocTrendFollowingBull'},
+    {'label': 'ROC Trend Following Bear', 'value': 'rocTrendFollowingBear'},
+    {'label': 'ROC Mean Reversion', 'value': 'rocMeanReversion'}
+]
 
-# Backtest layout (your existing layout)
+# Add community strategies
+community_strategies = [
+    {'label': 'Community Strategy 1', 'value': 'communityStrategy1'},
+    {'label': 'Community Strategy 2', 'value': 'communityStrategy2'}
+]
+
+# Combine the two lists for the dropdown
+all_strategies = available_strategies + community_strategies
+
 backtest_layout = html.Div([
     html.H1("Backtest Results"),
+
+    # Ticker selection
     dcc.Dropdown(
         id="ticker-dropdown",
         options=[{'label': symbol, 'value': symbol} for symbol in symbols],
@@ -32,20 +51,42 @@ backtest_layout = html.Div([
         value=['AMD'],  # Default selection
         style={'width': '100%'}
     ),
-    dcc.Dropdown(
-        id="strategy-dropdown",
-        options=[
-            {'label': 'Buy and Hold', 'value': 'buyAndHold'},
-            {'label': 'Daily Range', 'value': 'dailyRange'},
-            {'label': 'Solo RSI', 'value': 'soloRSI'},
-            {'label': 'ROC Trend Following Bull', 'value': 'rocTrendFollowingBull'},
-            {'label': 'ROC Trend Following Bear', 'value': 'rocTrendFollowingBear'},
-            {'label': 'ROC Mean Reversion', 'value': 'rocMeanReversion'}
-        ],
-        multi=True,  # Allow multiple selections
-        value=['buyAndHold'],  # Default selection
-        style={'width': '100%'}
-    ),
+
+    # Official Strategies
+    html.Div([
+        html.H3("Official Strategies"),
+        dcc.Dropdown(
+            id="strategy-dropdown-official",
+            options=[
+                {'label': 'Buy and Hold', 'value': 'buyAndHold'},
+                {'label': 'Daily Range', 'value': 'dailyRange'},
+                {'label': 'Solo RSI', 'value': 'soloRSI'},
+                {'label': 'ROC Trend Following Bull', 'value': 'rocTrendFollowingBull'},
+                {'label': 'ROC Trend Following Bear', 'value': 'rocTrendFollowingBear'},
+                {'label': 'ROC Mean Reversion', 'value': 'rocMeanReversion'}
+            ],
+            multi=True,  # Allow multiple selections
+            value=['buyAndHold'],  # Default selection
+            style={'width': '100%'}
+        )
+    ], style={'margin-top': '20px'}),
+
+    # Community Strategies
+    html.Div([
+        html.H3("Community Strategies"),
+        dcc.Dropdown(
+            id="strategy-dropdown-community",
+            options=[
+                {'label': 'Community Strategy 1', 'value': 'communityStrategy1'},
+                {'label': 'Community Strategy 2', 'value': 'communityStrategy2'}
+            ],
+            multi=True,  # Allow multiple selections
+            value=[],  # No default selection
+            style={'width': '100%'}
+        )
+    ], style={'margin-top': '20px'}),
+
+    # Date Range Selection
     html.Div([
         dcc.Dropdown(
             id='start-year-dropdown',
@@ -60,10 +101,17 @@ backtest_layout = html.Div([
             style={'width': '48%', 'display': 'inline-block'}
         ),
     ], style={'margin-top': '10px'}),
+
+    # Run Backtest Button
     html.Button("Run Backtest", id="run-btn", style={'margin-top': '10px', 'padding': '10px 20px', 'background-color': '#007BFF', 'color': 'white', 'border': 'none', 'border-radius': '5px', 'cursor': 'pointer'}),
+
+    # Equity Curve Plot
     dcc.Graph(id="equity-curve"),
-    html.Div(id="error-message", style={'color': 'red'})  # Error message div
+
+    # Error Message
+    html.Div(id="error-message", style={'color': 'red'})
 ])
+
 
 @app.callback(
     Output('tabs-content', 'children'),
@@ -84,16 +132,20 @@ register_callbacks(app)
     Output('error-message', 'children'),
     Input('run-btn', 'n_clicks'),
     Input('ticker-dropdown', 'value'),
-    Input('strategy-dropdown', 'value'),
+    Input('strategy-dropdown-official', 'value'),
+    Input('strategy-dropdown-community', 'value'),
     Input('start-year-dropdown', 'value'),
     Input('end-year-dropdown', 'value')
 )
-def update_equity_curve(n_clicks, selected_symbols, selected_strategies, start_year, end_year):
+def update_equity_curve(n_clicks, selected_symbols, official_strategies, community_strategies, start_year, end_year):
     if not n_clicks or not selected_symbols:
         return go.Figure(), ""  # Empty figure and no error message
 
     figures = []
     error_message = ""
+
+    # Combine selected official and community strategies
+    selected_strategies = (official_strategies or []) + (community_strategies or [])
 
     # Set the start and end dates
     start_date = f"{start_year}-01-01"  # Start from January 1st of the selected start year
@@ -121,6 +173,7 @@ def update_equity_curve(n_clicks, selected_symbols, selected_strategies, start_y
         return combined_fig, error_message
 
     return go.Figure(), error_message  # Return empty figure and error message if no tickers were processed
+
 
 if __name__ == '__main__':
     app.run_server(debug=True)

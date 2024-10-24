@@ -49,7 +49,10 @@ def generateSimpleResult(symbol, strategy, result):
     return simplifiedResult
 
 def createSignals(df, strategy):
-    if strategy == 'dailyRange':
+    if strategy == 'buyAndHold':
+        createBuyAndHoldSignals(df)
+
+    elif strategy == 'dailyRange':
         createDailyRangeSignals(df)
 
     elif strategy == 'soloRSI':
@@ -65,6 +68,11 @@ def createSignals(df, strategy):
         createROCMeanReversionSignals(df)
     
     df.set_index('Date', inplace=True)
+
+def createBuyAndHoldSignals(df):
+    df['BUYSignal'] = 1
+    df['atr'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
+    df.dropna(inplace=True)
 
 # Daily Range
 
