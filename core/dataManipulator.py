@@ -2,6 +2,8 @@ import yfinance as yf
 import pandas as pd
 import pandas_ta as ta
 import re
+import strategies.strategyTester as st
+
 
 def fetchData(symbol, start = None, end = None):
     try:
@@ -53,14 +55,23 @@ def generateSimpleResult(symbol, strategy, result):
     return simplifiedResult
 
 def createSignals(df, strategy):
-    signal_functions = {
-        'buyAndHold': createBuyAndHoldSignals,
-        'dailyRange': createDailyRangeSignals,
-        'soloRSI': createSoloRSISignals,
-        'rocTrendFollowingBull': createROCTrendFollowingBullSignals,
-        'rocTrendFollowingBear': createROCTrendFollowingBearSignals,
-        'rocMeanReversion': createROCMeanReversionSignals
-    }
+    # signal_functions = {
+    #     'buyAndHold': createBuyAndHoldSignals,
+    #     'dailyRange': createDailyRangeSignals,
+    #     'soloRSI': createSoloRSISignals,
+    #     'rocTrendFollowingBull': createROCTrendFollowingBullSignals,
+    #     'rocTrendFollowingBear': createROCTrendFollowingBearSignals,
+    #     'rocMeanReversion': createROCMeanReversionSignals
+    # }
+
+    df['BUYSignal'] = 0
+
+    signal_functions = st.loadStrategiesFromJson('strategies\strategies.json')
+    signal_functions.update(st.loadStrategiesFromJson('strategies\communityStrategies.json'))
+
+    for key in signal_functions:
+        function_name = f"create{key[0].upper()}{key[1:]}Signals"
+        signal_functions[key] = globals().get(function_name)
 
     signal_functions.get(strategy, lambda x: None)(df)
     df.set_index('Date', inplace=True)
@@ -127,7 +138,7 @@ def removeSoloRSIColumns(df):
 
 # ROC Trendfollowing Bull
 
-def createROCTrendFollowingBullSignals(df):
+def createRocTrendFollowingBullSignals(df):
     addROCTrendFollowingBullColumns(df)
     createROCTrendFollowingBullBuySignals(df)
     removeROCTrendFollowingBullColumns(df)
@@ -154,7 +165,7 @@ def removeROCTrendFollowingBullColumns(df):
 
 # ROC Trendfollowing Bear
 
-def createROCTrendFollowingBearSignals(df):
+def createRocTrendFollowingBearSignals(df):
     addROCTrendFollowingBearColumns(df)
     createROCTrendFollowingBearBuySignals(df)
     removeROCTrendFollowingBearColumns(df)
@@ -181,7 +192,7 @@ def removeROCTrendFollowingBearColumns(df):
 
 # ROC Mean Reversion
 
-def createROCMeanReversionSignals(df):
+def createRocMeanReversionSignals(df):
     addROCMeanReversionColumns(df)
     createROCMeanReversionBuySignals(df)
     removeROCMeanReversionColumns(df)
@@ -205,3 +216,26 @@ def createROCMeanReversionBuySignals(df, rocThreshold = -5):
 
 def removeROCMeanReversionColumns(df):
     df.drop(columns=['roc'], inplace=True)
+
+    
+# buyAndHolder
+
+def createBuyAndHolderSignals(df):
+    addbuyAndHolderColumns(df)
+    createbuyAndHolderBuySignals(df)
+    removebuyAndHolderColumns(df)
+
+def addbuyAndHolderColumns(df):
+    df['atr'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
+    df['ema'] = ta.ema(df['Close'], length=1)
+    df.dropna(inplace=True)
+
+def createbuyAndHolderBuySignals(df):
+    required_columns = ['Open', 'High', 'Low', 'Close', 'Date']
+    assert all(col in df.columns for col in required_columns), "DataFrame must contain 'Open', 'High', 'Low', 'Close', 'Date' columns."
+
+    buySignalCondition_ema = (df['ema'] > 0)
+    df['BUYSignal'] = df['BUYSignal'] | buySignalCondition_ema
+
+def removebuyAndHolderColumns(df):
+    df.drop(columns=['ema'], inplace=True)

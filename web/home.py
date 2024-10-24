@@ -10,6 +10,7 @@ app = Dash(__name__, suppress_callback_exceptions=True)
 # Load all S&P 500 symbols
 symbols = dm.loadSymbols('SP')
 strategiesDict = st.loadStrategiesFromJson('strategies\strategies.json')
+communityStrategiesDict = st.loadStrategiesFromJson('strategies\communityStrategies.json')
 
 # Get current year
 current_year = datetime.today().year
@@ -56,8 +57,8 @@ backtest_layout = html.Div([
         dcc.Dropdown(
             id="strategy-dropdown-community",
             options=[
-                {'label': 'Community Strategy 1', 'value': 'communityStrategy1'},
-                {'label': 'Community Strategy 2', 'value': 'communityStrategy2'}
+                {'label': dm.camelCaseToName(key), 'value': key}
+                for key in communityStrategiesDict.keys()
             ],
             multi=True,  # Allow multiple selections
             value=[],  # No default selection

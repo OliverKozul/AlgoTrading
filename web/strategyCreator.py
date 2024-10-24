@@ -1,6 +1,8 @@
 from dash import dcc, html, Input, Output, State
 from dash.exceptions import PreventUpdate
 from dash.dependencies import ALL
+import json
+import strategies.strategyTester as st
 
 def create_strategy_creator_layout():
     return html.Div([
@@ -69,31 +71,52 @@ def register_callbacks(app):
 
         if not strategy_name or not selected_indicators or not lengths or not logics:
             return "Please fill in all fields."
+        
+        if strategy_name.isalpha() == False:
+            return "Strategy name can only be comprised of letters."
 
         # Generate strategy code
-        strategy_code = generate_strategy_code(strategy_name, selected_indicators, lengths, logics)
+        strategy_code = generateStrategyCode(strategy_name, selected_indicators, lengths, logics)
 
         # Write to dataManipulator.py
-        with open('dataManipulator.py', 'a') as f:
+        with open('core\dataManipulator.py', 'a') as f:
             f.write(strategy_code)
+
+        strategies = st.loadStrategiesFromJson('strategies\communityStrategies.json')
+
+        # Add the new strategy (strat3)
+        strategies[strategy_name] = 0
+
+        # Write the updated JSON back to the file
+        with open('strategies\communityStrategies.json', 'w') as f:
+            json.dump(strategies, f, indent=4)
+
+        classCode = generateClassCode(strategy_name)
+
+        with open('strategies\strats.py', 'a') as f:
+            f.write(classCode)
 
         return f"Strategy '{strategy_name}' created successfully!"
 
-def generate_strategy_code(strategy_name, indicators, lengths, logics):
+def generateStrategyCode(strategy_name, indicators, lengths, logics):
     code = f"""
     
 # {strategy_name}
 
-def create{strategy_name}Signals(df):
+def create{strategy_name[0].upper()}{strategy_name[1:]}Signals(df):
     add{strategy_name}Columns(df)
     create{strategy_name}BuySignals(df)
     remove{strategy_name}Columns(df)
 
 def add{strategy_name}Columns(df):
+    df['atr'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
 """
     for indicator, length in zip(indicators, lengths):
-        code += f"    df['{indicator}'] = ta.{indicator}(df['Close'], length={length})\n"
-    
+        if indicator == 'atr':
+            code += f"    df['{indicator}'] = ta.{indicator}(df['High'], df['Low'], df['Close'], length={length})\n"
+        else:
+            code += f"    df['{indicator}'] = ta.{indicator}(df['Close'], length={length})\n"
+    code += "    df.dropna(inplace=True)\n"
     code += f"""
 def create{strategy_name}BuySignals(df):
     required_columns = ['Open', 'High', 'Low', 'Close', 'Date']
@@ -111,3 +134,17 @@ def remove{strategy_name}Columns(df):"""
     df.drop(columns=['{indicator}'], inplace=True)"""
 
     return code
+
+def generateClassCode(strategy_name):
+    code = f"""
+class {strategy_name}(BaseStrategy):
+    def init(self):
+        super().init()
+        self.atrCoef = 6
+
+    def next(self):
+        super().next()
+"""
+    
+    return code
+    

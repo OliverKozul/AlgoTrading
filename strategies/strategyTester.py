@@ -4,7 +4,6 @@ import strategies.strats as strats
 from backtesting import Backtest
 from multiprocessing import Pool, Manager, cpu_count
 import json
-import strategies
 
 
 def loadStrategiesFromJson(file_path):
@@ -22,6 +21,8 @@ def runMasterBacktest(symbols, strategy):
     with Manager() as manager:
         # Shared dict that processes can safely update
         strategies = manager.dict(loadStrategiesFromJson('strategies\strategies.json'))
+        communityStrategies = manager.dict(loadStrategiesFromJson('strategies\communityStrategies.json'))
+        strategies.update(communityStrategies)
 
         # Use Pool to parallelize the backtest process
         with Pool(min(len(symbols), cpu_count())) as pool:

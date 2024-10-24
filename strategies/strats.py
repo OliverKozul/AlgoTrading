@@ -1,18 +1,26 @@
 from backtesting import Strategy
+import strategies.strategyTester as st
+import strategies.strats as strats
 
 dataframe = None
 tradeSize = 0
 
 # Strategy loader function
 def loadStrategy(strategy, df, size):
-    strategies = {
-        'buyAndHold': BuyAndHold,
-        'dailyRange': DailyRange,
-        'soloRSI': SoloRSI,
-        'rocTrendFollowingBull': ROCBull,
-        'rocTrendFollowingBear': ROCBear,
-        'rocMeanReversion': ROCMeanReversion
-    }
+    # strategies = {
+    #     'buyAndHold': buyAndHold,
+    #     'dailyRange': dailyRange,
+    #     'soloRSI': soloRSI,
+    #     'rocTrendFollowingBull': rocTrendFollowingBull,
+    #     'rocTrendFollowingBear': rocTrendFollowingBear,
+    #     'rocMeanReversion': rocMeanReversion
+    # }
+
+    strategies = st.loadStrategiesFromJson('strategies\strategies.json')
+    communityStrategies = st.loadStrategiesFromJson('strategies\communityStrategies.json')
+    strategies.update(communityStrategies)
+    keys = strategies.keys()
+    strategies = {key: getattr(strats, key) for key in keys}
 
     if strategy not in strategies:
         raise ValueError(f"Unknown strategy: {strategy}")
@@ -104,25 +112,25 @@ class TrailingStopLossStrategy(BaseStrategy):
 
 
 # Buy and Hold strategy
-class BuyAndHold(BaseStrategy):
+class buyAndHold(BaseStrategy):
     def next(self):
         if len(self.trades) == 0:
             self.buy(size=self.size)
 
 # Daily Range strategy
-class DailyRange(BaseStrategy):
+class dailyRange(BaseStrategy):
     def next(self):
         super().closeNextGreenDay()
         super().next()
 
 # Solo RSI strategy
-class SoloRSI(BaseStrategy):
+class soloRSI(BaseStrategy):
     def next(self):
         super().closeNextGreenDay()
         super().next()
 
 # ROC Trend Following Bull strategy
-class ROCBull(TrailingStopLossStrategy):
+class rocTrendFollowingBull(TrailingStopLossStrategy):
     def init(self):
         super().init()
         self.atrCoef = 6
@@ -131,7 +139,7 @@ class ROCBull(TrailingStopLossStrategy):
         super().next()
 
 # ROC Trend Following Bear strategy
-class ROCBear(TrailingStopLossStrategy):
+class rocTrendFollowingBear(TrailingStopLossStrategy):
     def init(self):
         super().init()
         self.atrCoef = 6
@@ -141,7 +149,7 @@ class ROCBear(TrailingStopLossStrategy):
         
 
 # ROC Mean Reversion strategy
-class ROCMeanReversion(BaseStrategy):
+class rocMeanReversion(BaseStrategy):
     def init(self):
         super().init()
         self.tpCoef = 1
@@ -149,3 +157,18 @@ class ROCMeanReversion(BaseStrategy):
 
     def next(self):
         super().nextWithTPSL()
+
+class buyAndHold2(BaseStrategy):
+    def init(self):
+        super().init()
+        
+    def next(self):
+        if len(self.trades) == 0:
+            self.buy(size=self.size)
+class buyAndHolder(BaseStrategy):
+    def init(self):
+        super().init()
+        self.atrCoef = 6
+
+    def next(self):
+        super().next()
