@@ -17,7 +17,6 @@ To run this project locally, you need the following:
 
 - Python 3.7+
 - [Dash](https://dash.plotly.com/)
-- [Plotly](https://plotly.com/python/)
 - Other dependencies listed in `requirements.txt`
 
 ### Installing
@@ -33,8 +32,7 @@ To run this project locally, you need the following:
     ```bash
     pip install -r docs/requirements.txt
     ```
-3. Due to a known bug in pandas_ta edit NaN -> nan in line 2 of pandas_ta/momentum/squeeze_pro.py
-4. Run the app:
+3. Run the app:
    ```bash
    python -m web.home
    ```
