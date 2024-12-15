@@ -4,8 +4,9 @@ import plotly.graph_objs as go
 import core.dataManipulator as dm
 from datetime import datetime
 from web.strategyCreator import create_strategy_creator_layout, register_callbacks
+from web.pnlCalculator import create_pnl_calculator_layout, register_callbacks
 
-app = Dash(__name__, suppress_callback_exceptions=True)
+app = Dash("Cool", suppress_callback_exceptions=True)
 
 # Load all S&P 500 symbols
 symbols = dm.loadSymbols('SP')
@@ -19,6 +20,7 @@ app.layout = html.Div([
     dcc.Tabs(id='tabs', value='backtest', children=[
         dcc.Tab(label='Backtest', value='backtest'),
         dcc.Tab(label='Strategy Creator', value='strategy_creator'),
+        dcc.Tab(label="P&L Calculator", value='pnl_caulculator'),
     ]),
     html.Div(id='tabs-content')
 ])
@@ -102,6 +104,8 @@ def render_tab_content(tab):
         return backtest_layout
     elif tab == 'strategy_creator':
         return create_strategy_creator_layout()
+    elif tab == 'pnl_caulculator':
+        return create_pnl_calculator_layout()
 
 # Register callbacks for the strategy creator
 register_callbacks(app)
