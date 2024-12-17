@@ -13,9 +13,10 @@ def loadStrategiesFromJson(file_path):
 def runMasterBacktest(symbols, strategy):
     with open('data\config.json', 'r') as file:
         config = json.load(file)
-
+    
     if config['plotResults'] and len(symbols) > 10:
         print("Too many symbols to plot results for.")
+        config['plotResults'] = False
         
     # Create a multiprocessing manager and shared dictionary for strategies
     with Manager() as manager:
@@ -53,7 +54,7 @@ def runMasterBacktest(symbols, strategy):
 
         logger.logAggregatedResults(results)
 
-def runBacktest(symbol, strategy, start = None, end = None, plot = False, startPercent = 0, endPercent = 1):
+def runBacktest(symbol, strategy, plot = False, start = None, end = None, startPercent = 0, endPercent = 1):
     df = dm.fetchData(symbol, start=start, end=end)
     
     if df is None:

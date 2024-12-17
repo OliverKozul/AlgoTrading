@@ -146,6 +146,7 @@ def update_equity_curve(n_clicks, selected_symbols, official_strategies, communi
             
             # Create a new trace for each strategy
             fig = go.Figure()
+            fig.add_trace(go.Scatter(x=[equity_curve.index[0], equity_curve.index[-1]], y=[100000, 100000], mode='lines', name=f'Baseline 100 000'))
             fig.add_trace(go.Scatter(x=equity_curve.index, y=equity_curve['Equity'], mode='lines', name=f'{strategy} - {symbol}'))
             figures.append(fig)
 

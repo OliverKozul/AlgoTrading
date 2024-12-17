@@ -4,5 +4,6 @@
     "soloRSI": 0,
     "rocTrendFollowingBull": 0,
     "rocTrendFollowingBear": 0,
-    "rocMeanReversion": 0
+    "rocMeanReversion": 0,
+    "buyAfterRedDay": 0
 }

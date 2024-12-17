@@ -216,7 +216,6 @@ def createROCMeanReversionBuySignals(df, rocThreshold = -5):
 
 def removeROCMeanReversionColumns(df):
     df.drop(columns=['roc'], inplace=True)
-
     
 # buyAndHolder
 
@@ -239,3 +238,28 @@ def createbuyAndHolderBuySignals(df):
 
 def removebuyAndHolderColumns(df):
     df.drop(columns=['ema'], inplace=True)
+
+# Buy After Red Day
+
+def createBuyAfterRedDaySignals(df):
+    addBuyAfterRedDayColumns(df)
+    createBuyAfterRedDayBuySignals(df)
+    removeBuyAfterRedDayColumns(df)
+
+def addBuyAfterRedDayColumns(df):
+    df['atr'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
+    df['prevClose'] = df['Close'].shift(1)
+    df['prevOpen'] = df['Open'].shift(1)
+    df['ema'] = ta.ema(df['Close'], length=50)
+    df.dropna(inplace=True)
+
+def createBuyAfterRedDayBuySignals(df):
+    required_columns = ['Open', 'High', 'Low', 'Close', 'Date', 'prevClose', 'prevOpen', 'ema']
+    assert all(col in df.columns for col in required_columns), "DataFrame must contain 'Open', 'High', 'Low', 'Close', 'Date', 'prevClose', 'prevOpen', 'ema' columns."
+
+    buySignalCondition = (df['prevClose'] < df['prevOpen']) & (df['Close'] > df['ema'])
+
+    df.loc[buySignalCondition, 'BUYSignal'] = 1
+    
+def removeBuyAfterRedDayColumns(df):
+    df.drop(columns=['prevClose', 'prevOpen', 'ema'], inplace=True)

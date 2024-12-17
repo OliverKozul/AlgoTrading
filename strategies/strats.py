@@ -165,10 +165,16 @@ class buyAndHold2(BaseStrategy):
     def next(self):
         if len(self.trades) == 0:
             self.buy(size=self.size)
+
 class buyAndHolder(BaseStrategy):
     def init(self):
         super().init()
         self.atrCoef = 6
 
     def next(self):
+        super().next()
+
+class buyAfterRedDay(BaseStrategy):
+    def next(self):
+        super().closeNextGreenDay()
         super().next()
