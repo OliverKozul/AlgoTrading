@@ -38,6 +38,10 @@ def logAggregatedResults(results):
     tradeCount = sum(result['# trades'] for result in results)
     sharpeSum = sum(result['sharpe'] for result in results)
 
+    if len(results) == 0:
+        print("No results to aggregate.")
+        return
+    
     equityCurve['DrawdownPct'] = sum(result['equity_curve']['DrawdownPct'] for result in results) / len(results)
     equityCurve['Equity'] = sum(result['equity_curve']['Equity'] for result in results) / len(results)
 

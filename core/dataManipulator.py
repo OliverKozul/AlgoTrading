@@ -8,7 +8,7 @@ import strategies.strategyTester as st
 def fetchData(symbol, start = None, end = None):
     try:
         # Attempt to download data for the given symbol
-        df = yf.download(symbol, start=start, end=end, period='2y', interval='1d', progress=False)
+        df = yf.download(symbol, start=start, end=end, period='max', interval='1d', progress=False)
         
         # Check if the dataframe is empty (if data could not be fetched)
         if df.empty:

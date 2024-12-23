@@ -4,9 +4,8 @@ import strategies.strategyTester as st
 
 if __name__ == "__main__":
     # symbols = dm.loadSymbols('SP')
-    symbols = ['AMD', 'NVDA', 'CAT', 'TER', 'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'T', 'VZ', 'KO', 'PEP', 'JNJ', 'PG', 'UNH', 'MRK', 'PFE', 'INTC', 'CSCO', 'IBM', 'ORCL', 'QCOM', 'TXN', 'MU', 'NFLX', 'DIS', 'CMCSA', 'FOX', 'FOXA', 'DISCA', 'DISCK', 'VIAC', 'DISCB']
-    # symbols = ['NVDA']
+    symbols = ['ES=F', 'YM=F', 'NQ=F', 'RTY=F', 'ZB=F', 'GC=F', 'SI=F']
 
-    strategy = 'buyAfterRedDay'
+    strategy = 'dailyRange'
 
     st.runMasterBacktest(symbols, strategy)

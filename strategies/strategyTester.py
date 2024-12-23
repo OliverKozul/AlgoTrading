@@ -55,7 +55,7 @@ def runMasterBacktest(symbols, strategy):
         logger.logAggregatedResults(results)
 
 def runBacktest(symbol, strategy, plot = False, start = None, end = None, startPercent = 0, endPercent = 1):
-    df = dm.fetchData(symbol, start=start, end=end)
+    df = dm.fetchData(symbol)
     
     if df is None:
         return None
@@ -94,7 +94,7 @@ def findBestBacktest(symbol, strategies, plot = False, startPercent = 0, endPerc
         result = runBacktest(symbol, strategy, plot, startPercent, endPercent)
 
         if result is None:
-            return None
+            continue
         
         if result['Sharpe Ratio'] > bestSharpe:
             bestResult = result
