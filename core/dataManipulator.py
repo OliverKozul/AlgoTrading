@@ -5,10 +5,10 @@ import re
 import strategies.strategyTester as st
 
 
-def fetchData(symbol, start = None, end = None):
+def fetchData(symbol, startDate = None, endDate = None):
     try:
         # Attempt to download data for the given symbol
-        df = yf.download(symbol, start=start, end=end, period='max', interval='1d', progress=False)
+        df = yf.download(symbol, start=startDate, end=endDate, period='5y', interval='1d', progress=False)
         
         # Check if the dataframe is empty (if data could not be fetched)
         if df.empty:
@@ -25,12 +25,15 @@ def fetchData(symbol, start = None, end = None):
         print(f"Error fetching data for symbol {symbol}: {e}")
         return None
 
-def loadSymbols(index):
-    if index == 'SP':
+def loadSymbols(category):
+    if category == 'SP':
         return pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')[0]['Symbol'].tolist() + ['SPY']
     
-    elif index == 'R2000':
+    elif category == 'R2000':
         return pd.read_csv('R2000.csv').iloc[:, 0].tolist()
+
+    elif category == 'futures':
+        return ['ES=F', 'YM=F', 'NQ=F', 'RTY=F', 'CL=F', 'GC=F', 'SI=F', 'HG=F', 'PL=F', 'PA=F', 'NG=F', 'ZB=F', 'ZT=F', 'ZN=F', 'ZS=F', 'ZW=F', 'ZC=F', 'ZL=F', 'ZM=F']
     
     else:
         print("Invalid index specified.")

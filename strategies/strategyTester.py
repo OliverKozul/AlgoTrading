@@ -54,8 +54,8 @@ def runMasterBacktest(symbols, strategy):
 
         logger.logAggregatedResults(results)
 
-def runBacktest(symbol, strategy, plot = False, start = None, end = None, startPercent = 0, endPercent = 1):
-    df = dm.fetchData(symbol)
+def runBacktest(symbol, strategy, plot = False, startDate = None, endDate = None, startPercent = 0, endPercent = 1):
+    df = dm.fetchData(symbol, startDate, endDate)
     
     if df is None:
         return None
@@ -63,7 +63,7 @@ def runBacktest(symbol, strategy, plot = False, start = None, end = None, startP
     startIndex = int(startPercent * len(df))
     endIndex = int(endPercent * len(df))
     df = df.iloc[startIndex:endIndex]
-    size = 0.75
+    size = 0.5
 
     dm.createSignals(df, strategy)
     results = gatherBacktestResults(df, strategy, size, plot)
@@ -91,7 +91,7 @@ def findBestBacktest(symbol, strategies, plot = False, startPercent = 0, endPerc
     bestSharpe = 0
 
     for strategy in strategies.keys():
-        result = runBacktest(symbol, strategy, plot, startPercent, endPercent)
+        result = runBacktest(symbol, strategy, plot, startPercent=startPercent, endPercent=endPercent)
 
         if result is None:
             continue
@@ -112,12 +112,14 @@ def findBestBacktest(symbol, strategies, plot = False, startPercent = 0, endPerc
     return simplifiedResult
 
 def runAdaptiveBacktest(symbol, strategies, plot = False, startPercent = 0, endPercent = 0.5):
-    strategy = findBestBacktest(symbol, strategies, plot, startPercent, endPercent)['strategy']
+    results = findBestBacktest(symbol, strategies, plot, startPercent=startPercent, endPercent=endPercent)
 
-    if strategy is None:
+    if results is None:
         return None
     
-    result = runBacktest(symbol, strategy, plot, endPercent, 1)
+    strategy = results['strategy']
+    
+    result = runBacktest(symbol, strategy, plot, startPercent=endPercent, endPercent=1)
     simplifiedResult = dm.generateSimpleResult(symbol, strategy, result)
 
     return simplifiedResult
