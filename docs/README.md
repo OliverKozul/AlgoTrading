@@ -24,7 +24,7 @@ To run this project locally, you need the following:
 1. Clone this repository:
 
    ```bash
-   git clone https://github.com/OliverK666/AlgoTrading.git
+   git clone https://github.com/OliverKozul/AlgoTrading.git
    cd strategy-backtester
    ```
 2. Install the required dependencies:
