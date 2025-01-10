@@ -5,6 +5,7 @@ import core.dataManipulator as dm
 from datetime import datetime
 from web.strategyCreator import create_strategy_creator_layout, register_callbacks
 from web.pnlCalculator import create_pnl_calculator_layout, register_callbacks
+from web.training import create_training_tab_layout, register_callbacks
 
 app = Dash("Cool", suppress_callback_exceptions=True)
 
@@ -21,6 +22,7 @@ app.layout = html.Div([
         dcc.Tab(label='Backtest', value='backtest'),
         dcc.Tab(label='Strategy Creator', value='strategy_creator'),
         dcc.Tab(label="P&L Calculator", value='pnl_caulculator'),
+        dcc.Tab(label="Training", value='training')
     ]),
     html.Div(id='tabs-content')
 ])
@@ -106,6 +108,8 @@ def render_tab_content(tab):
         return create_strategy_creator_layout()
     elif tab == 'pnl_caulculator':
         return create_pnl_calculator_layout()
+    elif tab == 'training':
+        return create_training_tab_layout()
 
 # Register callbacks for the strategy creator
 register_callbacks(app)
