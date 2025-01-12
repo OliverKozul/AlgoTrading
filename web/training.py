@@ -24,6 +24,7 @@ training_state = {
     "current_date_idx": 0,
     "closed_positions": [],
     "closed_pnl": 0.00,
+    "open_pnl": 0.00,
     "open_positions": [],
 }
 
@@ -51,7 +52,8 @@ training_tab_layout = html.Div([
             html.Button("Sell", id="sell-button"),
             html.Button("Next Candle", id="next-candle-button")
         ]),
-        html.Div(id="pnl-display", children="PnL: $0.00"),
+        html.Div(id="closed-pnl-display", children="Closed PnL: $0.00"),
+        html.Div(id="open-pnl-display", children="Open PnL: $0.00"),
         html.Div([
             html.H5("Trade Log"),
             dash_table.DataTable(
@@ -77,7 +79,8 @@ def register_callbacks(app):
             Output("training-instrument-info", "children"),
             Output("training-date-info", "children"),
             Output("candlestick-graph", "figure"),
-            Output("pnl-display", "children"),
+            Output("closed-pnl-display", "children"),
+            Output("open-pnl-display", "children"),
             Output("positions-table", "data")
         ],
         [
@@ -94,7 +97,7 @@ def register_callbacks(app):
     def handle_training(n_start, n_buy, n_sell, n_next, selected_instruments, date_info):
         ctx = callback_context
         if not ctx.triggered:
-            return ({"display": "none"}, "", "", go.Figure(), "PnL: $0.00", [])
+            return ({"display": "none"}, "", "", go.Figure(), "Closed PnL: $0.00", "Open PnL: $0.00", [])
 
         button_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
@@ -103,6 +106,7 @@ def register_callbacks(app):
             training_state["current_date_idx"] = 100
             training_state["closed_positions"] = []
             training_state["closed_pnl"] = 0.00
+            training_state["open_pnl"] = 0.00
             training_state["open_positions"] = []
 
             instrument = training_state["instrument"]
@@ -115,13 +119,14 @@ def register_callbacks(app):
                 f"Trading on: {instrument}",
                 f"Starting Date: {start_date}",
                 figure,
-                "PnL: $0.00",
+                "Closed PnL: $0.00",
+                "Open PnL: $0.00",
                 []
             )
 
         instrument = training_state["instrument"]
         if not instrument:
-            return ({"display": "none"}, "", date_info, go.Figure(), f"PnL: ${training_state['pnl']}", [])
+            return ({"display": "none"}, "", date_info, go.Figure(), f"Closed PnL: ${training_state['closed_pnl']}", f"Open PnL: ${training_state['open_pnl']}", [])
 
         if button_id in ["buy-button", "sell-button"]:
             current_data = mock_data[instrument].iloc[training_state["current_date_idx"]]
@@ -153,19 +158,20 @@ def register_callbacks(app):
             if training_state["current_date_idx"] < len(mock_data[instrument]) - 1:
                 training_state["current_date_idx"] += 1
 
-        # Update PnL and date info
-        closed_pnl = training_state["closed_pnl"]
-
+        current_price = mock_data[instrument].iloc[training_state["current_date_idx"]]["Close"]
         current_date = mock_data[instrument].iloc[training_state["current_date_idx"]]["Date"]
-
+        training_state["open_pnl"] = sum([pos["quantity"] * (current_price - pos["price"]) for pos in training_state["open_positions"]])
         figure = create_candlestick_figure(mock_data[instrument], training_state["current_date_idx"])
+        closed_pnl = training_state["closed_pnl"]
+        open_pnl = training_state["open_pnl"]
 
         return (
             {"display": "block"},
             f"Trading on: {instrument}",
             f"Current Date: {current_date}",
             figure,
-            f"PnL: ${closed_pnl:.2f}",
+            f"Closed PnL: ${closed_pnl:.2f}",
+            f"Open PnL: ${open_pnl:.2f}",
             training_state["closed_positions"]
         )
 
@@ -186,31 +192,27 @@ def create_candlestick_figure(data, current_idx):
     )
 
     # Add buy/sell markers
-    price_sum_sell = 0
-    quantity_sum_sell = 0
-    price_sum_buy = 0
-    quantity_sum_buy = 0
+    price_sum = 0
+    quantity_sum = 0
+
     for pos in training_state["open_positions"]:
-        if pos["type"] == "Sell":
-            price_sum_sell += pos["price"] * pos["quantity"]
-            quantity_sum_sell += pos["quantity"]
-        else:
-            price_sum_buy += pos["price"] * pos["quantity"]
-            quantity_sum_buy += pos["quantity"]
+        price_sum += pos["price"] * pos["quantity"]
+        quantity_sum += pos["quantity"]
 
-    price_sum = price_sum_buy - price_sum_sell
-    quantity_sum = quantity_sum_buy - quantity_sum_sell
+    avg_price = price_sum / quantity_sum if quantity_sum else 0
+    print(avg_price)
+    print(training_state["open_positions"])
 
-    # if training_state["positions"]:
-    #     color = "green" if quantity_sum > 0 else "red"
-    #     figure.add_shape(
-    #         type="line",
-    #         x0=plot_data["Date"].iloc[0],
-    #         x1=plot_data["Date"].iloc[-1],
-    #         y0=training_state["open_avg_price"],
-    #         y1=training_state["open_avg_price"],
-    #         line=dict(color=color)
-    #     )
+    if training_state["open_positions"]:
+        color = "green" if quantity_sum > 0 else "red"
+        figure.add_shape(
+            type="line",
+            x0=plot_data["Date"].iloc[0],
+            x1=plot_data["Date"].iloc[-1],
+            y0=avg_price,
+            y1=avg_price,
+            line=dict(color=color)
+        )
 
     figure.update_layout(title="Past 100 Candles", xaxis_title="Date", yaxis_title="Price")
     return figure
