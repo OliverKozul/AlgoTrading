@@ -1,4 +1,5 @@
 from dash import Dash, dash_table, dcc, html, Input, Output, State, callback_context
+from dash_extensions import Keyboard
 import random
 import pandas as pd
 import yfinance as yf
@@ -30,32 +31,34 @@ training_state = {
 
 # Layout for the training tab
 training_tab_layout = html.Div([
-    html.H3("Trading Skill Training"),
+    html.H3("Trading Skill Training", style={"textAlign": "center", "marginBottom": "20px", "color": "#FFFFFF"}),
 
     html.Div([
-        html.Label("Select Instruments:"),
+        html.Label("Select Instruments:", style={"color": "#FFFFFF"}),
         dcc.Dropdown(
             id="training-instruments-dropdown",
             options=[{"label": symbol, "value": symbol} for symbol in mock_data.keys()],
-            multi=True
+            multi=True,
+            placeholder="Choose instruments...",
+            style={"backgroundColor": "#333333", "color": "#FFFFFF"}
         ),
-        html.Button("Start Training", id="start-training-button")
-    ]),
+        html.Button("Start Training", id="start-training-button", style={"backgroundColor": "#1E90FF", "color": "#FFFFFF", "marginTop": "10px", "fontSize": "16px", "padding": "10px 20px"})
+    ], style={"marginBottom": "20px"}),
 
-    html.Div(id="training-session-controls", style={"display": "none"}, children=[
-        html.H4("Training Session"),
-        html.Div(id="training-instrument-info"),
-        html.Div(id="training-date-info"),
-        dcc.Graph(id="candlestick-graph"),
+    html.Div(id="training-session-controls", style={"display": "none", "color": "#FFFFFF"}, children=[
+        html.H4("Training Session", style={"textAlign": "center"}),
+        html.Div(id="training-instrument-info", style={"marginBottom": "10px"}),
+        html.Div(id="training-date-info", style={"marginBottom": "10px"}),
+        dcc.Graph(id="candlestick-graph", style={"height": "60vh"}),
         html.Div([
-            html.Button("Buy", id="buy-button"),
-            html.Button("Sell", id="sell-button"),
-            html.Button("Next Candle", id="next-candle-button")
-        ]),
-        html.Div(id="closed-pnl-display", children="Closed PnL: $0.00"),
-        html.Div(id="open-pnl-display", children="Open PnL: $0.00"),
+            html.Button("Buy (A)", id="buy-button", accessKey="a", style={"backgroundColor": "#32CD32", "color": "#FFFFFF", "marginRight": "10px", "fontSize": "16px", "padding": "10px 20px"}),
+            html.Button("Sell (S)", id="sell-button", accessKey="s", style={"backgroundColor": "#FF4500", "color": "#FFFFFF", "marginRight": "10px", "fontSize": "16px", "padding": "10px 20px"}),
+            html.Button("Next Candle (D)", id="next-candle-button", accessKey="d", style={"backgroundColor": "#1E90FF", "color": "#FFFFFF", "fontSize": "16px", "padding": "10px 20px"})
+        ], style={"textAlign": "center", "marginTop": "20px", "marginBottom": "20px"}),
+        html.Div(id="closed-pnl-display", children="Closed PnL: $0.00", style={"marginBottom": "10px"}),
+        html.Div(id="open-pnl-display", children="Open PnL: $0.00", style={"marginBottom": "10px"}),
         html.Div([
-            html.H5("Trade Log"),
+            html.H5("Trade Log", style={"marginBottom": "10px"}),
             dash_table.DataTable(
                 id="positions-table",
                 columns=[
@@ -65,11 +68,15 @@ training_tab_layout = html.Div([
                     {"name": "Profit/Loss", "id": "pnl"},
                     {"name": "Quantity", "id": "quantity"},
                     {"name": "Date", "id": "date"}
-                ]
+                ],
+                style_table={'overflowX': 'auto', 'backgroundColor': '#333333', 'color': '#FFFFFF'},
+                style_header={"backgroundColor": "#444444", "color": "#FFFFFF"},
+                style_cell={"textAlign": "center", "backgroundColor": "#222222", "color": "#FFFFFF"}
             )
-        ])
+        ]),
+        Keyboard(id="keyboard", captureKeys=["a", "s", "d"], n_keydowns=0)
     ])
-])
+], style={"backgroundColor": "#121212", "padding": "20px"})
 
 # Callbacks for the training tab
 def register_callbacks(app):
@@ -85,6 +92,8 @@ def register_callbacks(app):
         ],
         [
             Input("start-training-button", "n_clicks"),
+            Input("keyboard", "keydown"),
+            Input("keyboard", "n_keydowns"),
             Input("buy-button", "n_clicks"),
             Input("sell-button", "n_clicks"),
             Input("next-candle-button", "n_clicks")
@@ -94,7 +103,8 @@ def register_callbacks(app):
             State("training-date-info", "children")
         ]
     )
-    def handle_training(n_start, n_buy, n_sell, n_next, selected_instruments, date_info):
+    def handle_training(n_start, key_pressed, n_keydowns, n_buy, n_sell, n_next, selected_instruments, date_info):
+        key_pressed = key_pressed["key"].upper() if key_pressed else None
         ctx = callback_context
         if not ctx.triggered:
             return ({"display": "none"}, "", "", go.Figure(), "Closed PnL: $0.00", "Open PnL: $0.00", [])
@@ -128,9 +138,9 @@ def register_callbacks(app):
         if not instrument:
             return ({"display": "none"}, "", date_info, go.Figure(), f"Closed PnL: ${training_state['closed_pnl']}", f"Open PnL: ${training_state['open_pnl']}", [])
 
-        if button_id in ["buy-button", "sell-button"]:
+        if button_id in ["buy-button", "sell-button"] or key_pressed in ["A", "S"]:
             current_data = mock_data[instrument].iloc[training_state["current_date_idx"]]
-            action = "Buy" if button_id == "buy-button" else "Sell"
+            action = "Buy" if button_id == "buy-button" or key_pressed == "A" else "Sell"
             quantity = 1 if action == "Buy" else -1
 
             for pos in training_state["open_positions"]:
@@ -154,7 +164,7 @@ def register_callbacks(app):
             if quantity != 0:
                 training_state["open_positions"].append({"type": action, "price": current_data["Close"], "close_price": None, "pnl": None, "quantity": quantity, "date": current_data["Date"]})
 
-        if button_id == "next-candle-button":
+        if button_id == "next-candle-button" or key_pressed == "D":
             if training_state["current_date_idx"] < len(mock_data[instrument]) - 1:
                 training_state["current_date_idx"] += 1
 
@@ -183,25 +193,25 @@ def create_candlestick_figure(data, current_idx):
         data=[
             go.Candlestick(
                 x=plot_data["Date"],
-                open=plot_data["Open"], 
-                high=plot_data["High"], 
-                low=plot_data["Low"], 
-                close=plot_data["Close"]
+                open=plot_data["Open"],
+                high=plot_data["High"],
+                low=plot_data["Low"],
+                close=plot_data["Close"],
+                increasing_line_color="green",
+                decreasing_line_color="red",
+                whiskerwidth=0.2
             )
         ]
     )
 
-    # Add buy/sell markers
+    # Add average price line
     price_sum = 0
     quantity_sum = 0
-
     for pos in training_state["open_positions"]:
         price_sum += pos["price"] * pos["quantity"]
         quantity_sum += pos["quantity"]
 
     avg_price = price_sum / quantity_sum if quantity_sum else 0
-    print(avg_price)
-    print(training_state["open_positions"])
 
     if training_state["open_positions"]:
         color = "green" if quantity_sum > 0 else "red"
@@ -211,8 +221,31 @@ def create_candlestick_figure(data, current_idx):
             x1=plot_data["Date"].iloc[-1],
             y0=avg_price,
             y1=avg_price,
-            line=dict(color=color)
+            line=dict(color=color, width=2, dash="dash")
         )
 
-    figure.update_layout(title="Past 100 Candles", xaxis_title="Date", yaxis_title="Price")
+    # Update layout to mimic TradingView style
+    figure.update_layout(
+        title="Candlestick Chart",
+        xaxis_title="Date",
+        yaxis_title="Price",
+        xaxis_rangeslider_visible=False,
+        template="plotly_dark",
+        plot_bgcolor="#1E1E1E",
+        paper_bgcolor="#1E1E1E",
+        font=dict(color="white"),
+        xaxis=dict(
+            gridcolor="#444444",
+            showline=True,
+            linewidth=1,
+            linecolor="#888888",
+        ),
+        yaxis=dict(
+            gridcolor="#444444",
+            showline=True,
+            linewidth=1,
+            linecolor="#888888",
+        ),
+    )
+
     return figure
