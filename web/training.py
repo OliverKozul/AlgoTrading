@@ -27,6 +27,17 @@ training_state = {
     "closed_pnl": 0.00,
     "open_pnl": 0.00,
     "open_positions": [],
+    "winrate": 0.00,
+    "total_trades": 0,
+    "winning_trades": 0,
+    "losing_trades": 0,
+    "average_win": 0.00,
+    "average_loss": 0.00,
+    "biggest_win": 0.00,
+    "biggest_loss": 0.00,
+    "total_pnl": 0.00,
+    "longest_winning_streak": 0,
+    "longest_losing_streak": 0,
 }
 
 # Layout for the training tab
@@ -72,6 +83,16 @@ training_tab_layout = html.Div([
                 style_table={'overflowX': 'auto', 'backgroundColor': '#333333', 'color': '#FFFFFF'},
                 style_header={"backgroundColor": "#444444", "color": "#FFFFFF"},
                 style_cell={"textAlign": "center", "backgroundColor": "#222222", "color": "#FFFFFF"}
+            ),
+            html.H5("Trading Statistics", style={"marginBottom": "10px"}),
+            dash_table.DataTable(
+                id="trading-statistics",
+                columns=[
+                    {"name": "Winrate %", "id": "winrate"},
+                ],
+                style_table={'overflowX': 'auto', 'backgroundColor': '#333333', 'color': '#FFFFFF'},
+                style_header={"backgroundColor": "#444444", "color": "#FFFFFF"},
+                style_cell={"textAlign": "center", "backgroundColor": "#222222", "color": "#FFFFFF"}
             )
         ]),
         Keyboard(id="keyboard", captureKeys=["a", "s", "d"], n_keydowns=0)
@@ -88,7 +109,8 @@ def register_callbacks(app):
             Output("candlestick-graph", "figure"),
             Output("closed-pnl-display", "children"),
             Output("open-pnl-display", "children"),
-            Output("positions-table", "data")
+            Output("positions-table", "data"),
+            Output("trading-statistics", "data")
         ],
         [
             Input("start-training-button", "n_clicks"),
@@ -107,7 +129,7 @@ def register_callbacks(app):
         key_pressed = key_pressed["key"].upper() if key_pressed else None
         ctx = callback_context
         if not ctx.triggered:
-            return ({"display": "none"}, "", "", go.Figure(), "Closed PnL: $0.00", "Open PnL: $0.00", [])
+            return ({"display": "none"}, "", "", go.Figure(), "Closed PnL: $0.00", "Open PnL: $0.00", [], [])
 
         button_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
@@ -131,12 +153,13 @@ def register_callbacks(app):
                 figure,
                 "Closed PnL: $0.00",
                 "Open PnL: $0.00",
+                [],
                 []
             )
 
         instrument = training_state["instrument"]
         if not instrument:
-            return ({"display": "none"}, "", date_info, go.Figure(), f"Closed PnL: ${training_state['closed_pnl']}", f"Open PnL: ${training_state['open_pnl']}", [])
+            return ({"display": "none"}, "", date_info, go.Figure(), f"Closed PnL: ${training_state['closed_pnl']}", f"Open PnL: ${training_state['open_pnl']}", [], [])
 
         if button_id in ["buy-button", "sell-button"] or key_pressed in ["A", "S"]:
             current_data = mock_data[instrument].iloc[training_state["current_date_idx"]]
@@ -174,6 +197,7 @@ def register_callbacks(app):
         figure = create_candlestick_figure(mock_data[instrument], training_state["current_date_idx"])
         closed_pnl = training_state["closed_pnl"]
         open_pnl = training_state["open_pnl"]
+        winrate = len([pos for pos in training_state["closed_positions"] if pos["pnl"] > 0]) / len(training_state["closed_positions"]) * 100 if training_state["closed_positions"] else 0
 
         return (
             {"display": "block"},
@@ -182,7 +206,8 @@ def register_callbacks(app):
             figure,
             f"Closed PnL: ${closed_pnl:.2f}",
             f"Open PnL: ${open_pnl:.2f}",
-            training_state["closed_positions"]
+            training_state["closed_positions"],
+            [{"winrate": f"{winrate:.2f}%"}]
         )
 
 def create_candlestick_figure(data, current_idx):
