@@ -7,7 +7,7 @@ import plotly.graph_objs as go
 # Fetching data using yfinance
 def fetch_data(ticker):
     data = yf.download(ticker, period="2y", interval="1d")
-    return pd.DataFrame({"Date": data.index, "Open": round(data["Open"], 4), "High": round(data["High"], 4), "Low": round(data["Low"], 4), "Close": round(data["Close"], 4)}).reset_index(drop=True)
+    return pd.DataFrame({"Date": data.index.strftime("%Y-%m-%d"), "Open": round(data["Open"], 4), "High": round(data["High"], 4), "Low": round(data["Low"], 4), "Close": round(data["Close"], 4)}).reset_index(drop=True)
 
 mock_data = {
     "AAPL": fetch_data("AAPL"),
@@ -22,8 +22,9 @@ def create_training_tab_layout():
 training_state = {
     "instrument": None,
     "current_date_idx": 0,
-    "positions": [],
-    "pnl": 0
+    "closed_positions": [],
+    "closed_pnl": 0.00,
+    "open_positions": [],
 }
 
 # Layout for the training tab
@@ -50,14 +51,16 @@ training_tab_layout = html.Div([
             html.Button("Sell", id="sell-button"),
             html.Button("Next Candle", id="next-candle-button")
         ]),
-        html.Div(id="pnl-display", children="PnL: $0"),
+        html.Div(id="pnl-display", children="PnL: $0.00"),
         html.Div([
             html.H5("Trade Log"),
             dash_table.DataTable(
                 id="positions-table",
                 columns=[
-                    {"name": "Action", "id": "action"},
+                    {"name": "Action", "id": "type"},
                     {"name": "Price", "id": "price"},
+                    {"name": "Close Price", "id": "close_price"},
+                    {"name": "Profit/Loss", "id": "pnl"},
                     {"name": "Quantity", "id": "quantity"},
                     {"name": "Date", "id": "date"}
                 ]
@@ -91,15 +94,16 @@ def register_callbacks(app):
     def handle_training(n_start, n_buy, n_sell, n_next, selected_instruments, date_info):
         ctx = callback_context
         if not ctx.triggered:
-            return ({"display": "none"}, "", "", go.Figure(), "PnL: $0", [])
+            return ({"display": "none"}, "", "", go.Figure(), "PnL: $0.00", [])
 
         button_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
         if button_id == "start-training-button" and selected_instruments:
             training_state["instrument"] = random.choice(selected_instruments)
             training_state["current_date_idx"] = 100
-            training_state["positions"] = []
-            training_state["pnl"] = 0
+            training_state["closed_positions"] = []
+            training_state["closed_pnl"] = 0.00
+            training_state["open_positions"] = []
 
             instrument = training_state["instrument"]
             start_date = mock_data[instrument].iloc[0]["Date"]
@@ -111,7 +115,7 @@ def register_callbacks(app):
                 f"Trading on: {instrument}",
                 f"Starting Date: {start_date}",
                 figure,
-                "PnL: $0",
+                "PnL: $0.00",
                 []
             )
 
@@ -122,49 +126,47 @@ def register_callbacks(app):
         if button_id in ["buy-button", "sell-button"]:
             current_data = mock_data[instrument].iloc[training_state["current_date_idx"]]
             action = "Buy" if button_id == "buy-button" else "Sell"
-            quantity = 1  # Fixed for simplicity
+            quantity = 1 if action == "Buy" else -1
 
-            training_state["positions"].append({
-                "type": action,
-                "price": current_data["Close"],
-                "quantity": quantity,
-                "date": current_data["Date"]
-            })
+            for pos in training_state["open_positions"]:
+                if pos["quantity"] * quantity < 0:
+                    if abs(pos["quantity"]) > abs(quantity):
+                        pos["quantity"] += quantity
+                        partial_pos = pos.copy()
+                        partial_pos["quantity"] = quantity
+                        partial_pos["close_price"] = current_data["Close"]
+                        partial_pos["pnl"] = round((partial_pos["close_price"] - pos["price"]) * partial_pos["quantity"], 2)
+                        training_state["closed_positions"].insert(0, pos)
+                        quantity = 0
+                    else:
+                        quantity += pos["quantity"]
+                        pos["close_price"] = current_data["Close"]
+                        pos["pnl"] = round((pos["close_price"] - pos["price"]) * pos["quantity"], 2)
+                        training_state["closed_positions"].insert(0, pos)
+                        training_state["closed_pnl"] += pos["pnl"]
+                        training_state["open_positions"].remove(pos)
+            
+            if quantity != 0:
+                training_state["open_positions"].append({"type": action, "price": current_data["Close"], "close_price": None, "pnl": None, "quantity": quantity, "date": current_data["Date"]})
 
         if button_id == "next-candle-button":
             if training_state["current_date_idx"] < len(mock_data[instrument]) - 1:
                 training_state["current_date_idx"] += 1
 
         # Update PnL and date info
-        pnl = sum(
-            (pos["price"] - mock_data[instrument].iloc[training_state["current_date_idx"]]["Close"])
-            * pos["quantity"] if pos["type"] == "Sell" else
-            (mock_data[instrument].iloc[training_state["current_date_idx"]]["Close"] - pos["price"]) * pos["quantity"]
-            for pos in training_state["positions"]
-        )
-        training_state["pnl"] = pnl
+        closed_pnl = training_state["closed_pnl"]
 
         current_date = mock_data[instrument].iloc[training_state["current_date_idx"]]["Date"]
 
         figure = create_candlestick_figure(mock_data[instrument], training_state["current_date_idx"])
-
-        positions_data = [
-            {
-                "action": pos["type"],
-                "price": pos["price"],
-                "quantity": pos["quantity"],
-                "date": pos["date"]
-            }
-            for pos in training_state["positions"]
-        ]
 
         return (
             {"display": "block"},
             f"Trading on: {instrument}",
             f"Current Date: {current_date}",
             figure,
-            f"PnL: ${pnl:.2f}",
-            positions_data
+            f"PnL: ${closed_pnl:.2f}",
+            training_state["closed_positions"]
         )
 
 def create_candlestick_figure(data, current_idx):
@@ -188,7 +190,7 @@ def create_candlestick_figure(data, current_idx):
     quantity_sum_sell = 0
     price_sum_buy = 0
     quantity_sum_buy = 0
-    for pos in training_state["positions"]:
+    for pos in training_state["open_positions"]:
         if pos["type"] == "Sell":
             price_sum_sell += pos["price"] * pos["quantity"]
             quantity_sum_sell += pos["quantity"]
@@ -199,17 +201,16 @@ def create_candlestick_figure(data, current_idx):
     price_sum = price_sum_buy - price_sum_sell
     quantity_sum = quantity_sum_buy - quantity_sum_sell
 
-    if quantity_sum != 0:
-        print(price_sum, quantity_sum)
-        color = "green" if quantity_sum > 0 else "red"
-        figure.add_shape(
-            type="line",
-            x0=plot_data["Date"].iloc[0],
-            x1=plot_data["Date"].iloc[-1],
-            y0=abs(price_sum / quantity_sum),
-            y1=abs(price_sum / quantity_sum),
-            line=dict(color=color)
-        )
+    # if training_state["positions"]:
+    #     color = "green" if quantity_sum > 0 else "red"
+    #     figure.add_shape(
+    #         type="line",
+    #         x0=plot_data["Date"].iloc[0],
+    #         x1=plot_data["Date"].iloc[-1],
+    #         y0=training_state["open_avg_price"],
+    #         y1=training_state["open_avg_price"],
+    #         line=dict(color=color)
+    #     )
 
     figure.update_layout(title="Past 100 Candles", xaxis_title="Date", yaxis_title="Price")
     return figure
