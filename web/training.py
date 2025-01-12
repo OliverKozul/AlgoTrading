@@ -8,7 +8,13 @@ import plotly.graph_objs as go
 # Fetching data using yfinance
 def fetch_data(ticker):
     data = yf.download(ticker, period="2y", interval="1d")
-    return pd.DataFrame({"Date": data.index.strftime("%Y-%m-%d"), "Open": round(data["Open"], 4), "High": round(data["High"], 4), "Low": round(data["Low"], 4), "Close": round(data["Close"], 4)}).reset_index(drop=True)
+    return pd.DataFrame({
+        "Date": data.index.strftime("%Y-%m-%d"),
+        "Open": round(data["Open"], 4),
+        "High": round(data["High"], 4),
+        "Low": round(data["Low"], 4),
+        "Close": round(data["Close"], 4)
+    }).reset_index(drop=True)
 
 mock_data = {
     "AAPL": fetch_data("AAPL"),
@@ -16,31 +22,26 @@ mock_data = {
     "MSFT": fetch_data("MSFT")
 }
 
-# Placeholder for the selected instrument and its data
-def create_training_tab_layout():
-    return training_tab_layout
-  
-training_state = {
-    "instrument": None,
-    "current_date_idx": 0,
-    "closed_positions": [],
-    "closed_pnl": 0.00,
-    "open_pnl": 0.00,
-    "open_positions": [],
-    "winrate": 0.00,
-    "total_trades": 0,
-    "winning_trades": 0,
-    "losing_trades": 0,
-    "average_win": 0.00,
-    "average_loss": 0.00,
-    "biggest_win": 0.00,
-    "biggest_loss": 0.00,
-    "total_pnl": 0.00,
-    "longest_winning_streak": 0,
-    "longest_losing_streak": 0,
-}
+class TradingStats:
+    def __init__(self):
+        self.closed_positions = []
+        self.closed_pnl = 0.00
+        self.open_pnl = 0.00
+        self.open_positions = []
+
+class TrainingState:
+    def __init__(self):
+        self.instrument = None
+        self.current_date_idx = 0
+        self.stats = TradingStats()
+
+training_state = TrainingState()
 
 # Layout for the training tab
+
+def create_training_tab_layout():
+    return training_tab_layout
+
 training_tab_layout = html.Div([
     html.H3("Trading Skill Training", style={"textAlign": "center", "marginBottom": "20px", "color": "#FFFFFF"}),
 
@@ -89,6 +90,17 @@ training_tab_layout = html.Div([
                 id="trading-statistics",
                 columns=[
                     {"name": "Winrate %", "id": "winrate"},
+                    {"name": "Total Trades", "id": "total_trades"},
+                    {"name": "Winning Trades", "id": "winning_trades"},
+                    {"name": "Losing Trades", "id": "losing_trades"},
+                    {"name": "Average Win", "id": "average_win"},
+                    {"name": "Average Loss", "id": "average_loss"},
+                    {"name": "Average Trade", "id": "average_trade"},
+                    {"name": "Biggest Win", "id": "biggest_win"},
+                    {"name": "Biggest Loss", "id": "biggest_loss"},
+                    {"name": "Total PnL", "id": "total_pnl"},
+                    {"name": "Longest Winning Streak", "id": "longest_winning_streak"},
+                    {"name": "Longest Losing Streak", "id": "longest_losing_streak"}
                 ],
                 style_table={'overflowX': 'auto', 'backgroundColor': '#333333', 'color': '#FFFFFF'},
                 style_header={"backgroundColor": "#444444", "color": "#FFFFFF"},
@@ -134,17 +146,14 @@ def register_callbacks(app):
         button_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
         if button_id == "start-training-button" and selected_instruments:
-            training_state["instrument"] = random.choice(selected_instruments)
-            training_state["current_date_idx"] = 100
-            training_state["closed_positions"] = []
-            training_state["closed_pnl"] = 0.00
-            training_state["open_pnl"] = 0.00
-            training_state["open_positions"] = []
+            training_state.instrument = random.choice(selected_instruments)
+            training_state.current_date_idx = 100
+            training_state.stats = TradingStats()
 
-            instrument = training_state["instrument"]
+            instrument = training_state.instrument
             start_date = mock_data[instrument].iloc[0]["Date"]
 
-            figure = create_candlestick_figure(mock_data[instrument], training_state["current_date_idx"])
+            figure = create_candlestick_figure(mock_data[instrument], training_state.current_date_idx)
 
             return (
                 {"display": "block"},
@@ -157,16 +166,16 @@ def register_callbacks(app):
                 []
             )
 
-        instrument = training_state["instrument"]
+        instrument = training_state.instrument
         if not instrument:
-            return ({"display": "none"}, "", date_info, go.Figure(), f"Closed PnL: ${training_state['closed_pnl']}", f"Open PnL: ${training_state['open_pnl']}", [], [])
+            return ({"display": "none"}, "", date_info, go.Figure(), f"Closed PnL: ${training_state.stats.closed_pnl}", f"Open PnL: ${training_state.stats.open_pnl}", [], [])
 
         if button_id in ["buy-button", "sell-button"] or key_pressed in ["A", "S"]:
-            current_data = mock_data[instrument].iloc[training_state["current_date_idx"]]
+            current_data = mock_data[instrument].iloc[training_state.current_date_idx]
             action = "Buy" if button_id == "buy-button" or key_pressed == "A" else "Sell"
             quantity = 1 if action == "Buy" else -1
 
-            for pos in training_state["open_positions"]:
+            for pos in training_state.stats.open_positions:
                 if pos["quantity"] * quantity < 0:
                     if abs(pos["quantity"]) > abs(quantity):
                         pos["quantity"] += quantity
@@ -174,30 +183,57 @@ def register_callbacks(app):
                         partial_pos["quantity"] = quantity
                         partial_pos["close_price"] = current_data["Close"]
                         partial_pos["pnl"] = round((partial_pos["close_price"] - pos["price"]) * partial_pos["quantity"], 2)
-                        training_state["closed_positions"].insert(0, pos)
+                        training_state.stats.closed_positions.insert(0, pos)
                         quantity = 0
                     else:
                         quantity += pos["quantity"]
                         pos["close_price"] = current_data["Close"]
                         pos["pnl"] = round((pos["close_price"] - pos["price"]) * pos["quantity"], 2)
-                        training_state["closed_positions"].insert(0, pos)
-                        training_state["closed_pnl"] += pos["pnl"]
-                        training_state["open_positions"].remove(pos)
+                        training_state.stats.closed_positions.insert(0, pos)
+                        training_state.stats.closed_pnl += pos["pnl"]
+                        training_state.stats.open_positions.remove(pos)
             
             if quantity != 0:
-                training_state["open_positions"].append({"type": action, "price": current_data["Close"], "close_price": None, "pnl": None, "quantity": quantity, "date": current_data["Date"]})
+                training_state.stats.open_positions.append({"type": action, "price": current_data["Close"], "close_price": None, "pnl": None, "quantity": quantity, "date": current_data["Date"]})
 
         if button_id == "next-candle-button" or key_pressed == "D":
-            if training_state["current_date_idx"] < len(mock_data[instrument]) - 1:
-                training_state["current_date_idx"] += 1
+            if training_state.current_date_idx < len(mock_data[instrument]) - 1:
+                training_state.current_date_idx += 1
 
-        current_price = mock_data[instrument].iloc[training_state["current_date_idx"]]["Close"]
-        current_date = mock_data[instrument].iloc[training_state["current_date_idx"]]["Date"]
-        training_state["open_pnl"] = sum([pos["quantity"] * (current_price - pos["price"]) for pos in training_state["open_positions"]])
-        figure = create_candlestick_figure(mock_data[instrument], training_state["current_date_idx"])
-        closed_pnl = training_state["closed_pnl"]
-        open_pnl = training_state["open_pnl"]
-        winrate = len([pos for pos in training_state["closed_positions"] if pos["pnl"] > 0]) / len(training_state["closed_positions"]) * 100 if training_state["closed_positions"] else 0
+        current_price = mock_data[instrument].iloc[training_state.current_date_idx]["Close"]
+        current_date = mock_data[instrument].iloc[training_state.current_date_idx]["Date"]
+        training_state.stats.open_pnl = sum([pos["quantity"] * (current_price - pos["price"]) for pos in training_state.stats.open_positions])
+        figure = create_candlestick_figure(mock_data[instrument], training_state.current_date_idx)
+        closed_pnl = training_state.stats.closed_pnl
+        open_pnl = training_state.stats.open_pnl
+        # Calculate additional statistics
+        total_trades = len(training_state.stats.closed_positions)
+        winning_trades = len([pos for pos in training_state.stats.closed_positions if pos["pnl"] > 0])
+        winrate = (winning_trades / total_trades) * 100 if total_trades else 0
+        losing_trades = len([pos for pos in training_state.stats.closed_positions if pos["pnl"] <= 0])
+        average_win = sum([pos["pnl"] for pos in training_state.stats.closed_positions if pos["pnl"] > 0]) / winning_trades if winning_trades else 0
+        average_loss = sum([pos["pnl"] for pos in training_state.stats.closed_positions if pos["pnl"] <= 0]) / losing_trades if losing_trades else 0
+        average_trade = sum([pos["pnl"] for pos in training_state.stats.closed_positions]) / total_trades if total_trades else 0
+        biggest_win = max([pos["pnl"] for pos in training_state.stats.closed_positions], default=0)
+        biggest_loss = min([pos["pnl"] if pos["pnl"] <= 0 else 0 for pos in training_state.stats.closed_positions], default=0)
+        total_pnl = closed_pnl + open_pnl
+        longest_winning_streak = 0
+        longest_losing_streak = 0
+        current_streak = 0
+
+        for pos in training_state.stats.closed_positions:
+            if pos["pnl"] > 0:
+                if current_streak >= 0:
+                    current_streak += 1
+                else:
+                    current_streak = 1
+            else:
+                if current_streak <= 0:
+                    current_streak -= 1
+                else:
+                    current_streak = -1
+            longest_winning_streak = max(longest_winning_streak, current_streak)
+            longest_losing_streak = abs(min(longest_losing_streak, current_streak))
 
         return (
             {"display": "block"},
@@ -206,8 +242,21 @@ def register_callbacks(app):
             figure,
             f"Closed PnL: ${closed_pnl:.2f}",
             f"Open PnL: ${open_pnl:.2f}",
-            training_state["closed_positions"],
-            [{"winrate": f"{winrate:.2f}%"}]
+            training_state.stats.closed_positions,
+            [{
+                "winrate": f"{winrate:.2f}%",
+                "total_trades": total_trades,
+                "winning_trades": winning_trades,
+                "losing_trades": losing_trades,
+                "average_win": f"${average_win:.2f}",
+                "average_loss": f"${average_loss:.2f}",
+                "average_trade": f"${average_trade:.2f}",
+                "biggest_win": f"${biggest_win:.2f}",
+                "biggest_loss": f"${biggest_loss:.2f}",
+                "total_pnl": f"${total_pnl:.2f}",
+                "longest_winning_streak": longest_winning_streak,
+                "longest_losing_streak": longest_losing_streak
+            }]
         )
 
 def create_candlestick_figure(data, current_idx):
@@ -232,13 +281,13 @@ def create_candlestick_figure(data, current_idx):
     # Add average price line
     price_sum = 0
     quantity_sum = 0
-    for pos in training_state["open_positions"]:
+    for pos in training_state.stats.open_positions:
         price_sum += pos["price"] * pos["quantity"]
         quantity_sum += pos["quantity"]
 
     avg_price = price_sum / quantity_sum if quantity_sum else 0
 
-    if training_state["open_positions"]:
+    if training_state.stats.open_positions:
         color = "green" if quantity_sum > 0 else "red"
         figure.add_shape(
             type="line",
