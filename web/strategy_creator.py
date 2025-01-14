@@ -2,7 +2,7 @@ from dash import dcc, html, Input, Output, State
 from dash.exceptions import PreventUpdate
 from dash.dependencies import ALL
 import json
-import strategies.strategyTester as st
+import strategies.strategy_tester as st
 
 def create_strategy_creator_layout():
     return html.Div([
@@ -76,29 +76,29 @@ def register_callbacks(app):
             return "Strategy name can only be comprised of letters."
 
         # Generate strategy code
-        strategy_code = generateStrategyCode(strategy_name, selected_indicators, lengths, logics)
+        strategy_code = generate_strategy_code(strategy_name, selected_indicators, lengths, logics)
 
-        # Write to dataManipulator.py
-        with open('core\dataManipulator.py', 'a') as f:
+        # Write to data_manipulator.py
+        with open('core\data_manipulator.py', 'a') as f:
             f.write(strategy_code)
 
-        strategies = st.loadStrategiesFromJson('strategies\communityStrategies.json')
+        strategies = st.load_strategies_from_json('strategies\community_strategies.json')
 
         # Add the new strategy (strat3)
         strategies[strategy_name] = 0
 
         # Write the updated JSON back to the file
-        with open('strategies\communityStrategies.json', 'w') as f:
+        with open('strategies\community_strategies.json', 'w') as f:
             json.dump(strategies, f, indent=4)
 
-        classCode = generateClassCode(strategy_name)
+        classCode = generate_class_code(strategy_name)
 
         with open('strategies\strats.py', 'a') as f:
             f.write(classCode)
 
         return f"Strategy '{strategy_name}' created successfully!"
 
-def generateStrategyCode(strategy_name, indicators, lengths, logics):
+def generate_strategy_code(strategy_name, indicators, lengths, logics):
     code = f"""
     
 # {strategy_name}
@@ -135,7 +135,7 @@ def remove{strategy_name}Columns(df):"""
 
     return code
 
-def generateClassCode(strategy_name):
+def generate_class_code(strategy_name):
     code = f"""
 class {strategy_name}(BaseStrategy):
     def init(self):

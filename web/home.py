@@ -1,21 +1,21 @@
 from dash import Dash, dcc, html, Input, Output
-import strategies.strategyTester as st
+import strategies.strategy_tester as st
 import plotly.graph_objs as go
-import core.dataManipulator as dm
+import core.data_manipulator as dm
 from datetime import datetime
-from web.strategyCreator import create_strategy_creator_layout, register_callbacks
-from web.pnlCalculator import create_pnl_calculator_layout, register_callbacks
+from web.strategy_creator import create_strategy_creator_layout, register_callbacks
+from web.pnl_calculator import create_pnl_calculator_layout, register_callbacks
 from web.training import create_training_tab_layout, register_callbacks
 
 app = Dash("Cool", suppress_callback_exceptions=True)
 
 # Load all S&P 500 symbols
-symbols = dm.loadSymbols('SP')
-strategiesDict = st.loadStrategiesFromJson('strategies\strategies.json')
-communityStrategiesDict = st.loadStrategiesFromJson('strategies\communityStrategies.json')
+symbols = dm.load_symbols('SP')
+strategies_dict = st.load_strategies_from_json('strategies\strategies.json')
+community_strategies_dict = st.load_strategies_from_json('strategies\community_strategies.json')
 
 # Get current year
-current_year = datetime.today().year
+last_year = datetime.today().year - 1
 
 app.layout = html.Div([
     dcc.Tabs(id='tabs', value='backtest', children=[
@@ -46,11 +46,11 @@ backtest_layout = html.Div([
         dcc.Dropdown(
             id="strategy-dropdown-official",
             options=[
-                {'label': dm.camelCaseToName(key), 'value': key}
-                for key in strategiesDict.keys()
+                {'label': dm.snake_case_to_name(key), 'value': key}
+                for key in strategies_dict.keys()
             ],
             multi=True,  # Allow multiple selections
-            value=['buyAndHold'],  # Default selection
+            value=['Buy_And_Hold'],  # Default selection
             style={'width': '100%'}
         )
     ], style={'margin-top': '20px'}),
@@ -61,8 +61,8 @@ backtest_layout = html.Div([
         dcc.Dropdown(
             id="strategy-dropdown-community",
             options=[
-                {'label': dm.camelCaseToName(key), 'value': key}
-                for key in communityStrategiesDict.keys()
+                {'label': dm.snake_case_to_name(key), 'value': key}
+                for key in community_strategies_dict.keys()
             ],
             multi=True,  # Allow multiple selections
             value=[],  # No default selection
@@ -74,14 +74,14 @@ backtest_layout = html.Div([
     html.Div([
         dcc.Dropdown(
             id='start-year-dropdown',
-            options=[{'label': str(year), 'value': str(year)} for year in range(current_year - 10, current_year + 1)],
-            value=str(current_year - 2),  # Default to 2 years ago
+            options=[{'label': str(year), 'value': str(year)} for year in range(last_year - 10, last_year + 1)],
+            value=str(last_year - 2),  # Default to 2 years ago
             style={'width': '48%', 'display': 'inline-block'}
         ),
         dcc.Dropdown(
             id='end-year-dropdown',
-            options=[{'label': str(year), 'value': str(year)} for year in range(current_year - 10, current_year + 1)],
-            value=str(current_year),  # Default to today
+            options=[{'label': str(year), 'value': str(year)} for year in range(last_year - 10, last_year + 1)],
+            value=str(last_year),  # Default to today
             style={'width': '48%', 'display': 'inline-block'}
         ),
     ], style={'margin-top': '10px'}),
@@ -141,7 +141,7 @@ def update_equity_curve(n_clicks, selected_symbols, official_strategies, communi
 
     for symbol in selected_symbols:
         for strategy in selected_strategies:  # Loop through selected strategies
-            results = st.runBacktest(symbol, strategy, start_date, end_date)
+            results = st.run_backtest(symbol, strategy, False, start_date, end_date)
             if results is None:
                 error_message = f"No trades were made for {symbol} using {strategy}."
                 continue

@@ -70,7 +70,7 @@ Any strategy created in the **Strategy Creator** tab is saved in `community_stra
 
 ### Customization
 
-You can customize the strategies and backtesting logic by modifying `strategyTester.py`. For example, you can implement new strategies by adding them to the official strategy list or as community strategies.
+You can customize the strategies and backtesting logic by modifying `strategy_tester.py`. For example, you can implement new strategies by adding them to the official strategy list or as community strategies.
 
 ### JSON Storage
 

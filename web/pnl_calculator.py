@@ -1,10 +1,10 @@
 from dash import dcc, html, Input, Output, State, callback, ctx, ALL
 from dash.exceptions import PreventUpdate
-import core.dataManipulator as dm
+import core.data_manipulator as dm
 import numpy as np
 import plotly.graph_objects as go
 
-symbols = dm.loadSymbols('SP')
+symbols = dm.load_symbols('SP')
 
 def create_pnl_calculator_layout():
     return html.Div([

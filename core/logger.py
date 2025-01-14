@@ -2,27 +2,25 @@ import core.plotter as plotter
 import numpy as np
 import pandas as pd
 
-def log(results):
-    backtestResults = results
-
-    if backtestResults['Return [%]'] > backtestResults['Buy & Hold Return [%]']:
-        print(f"| W R %: {str(round(backtestResults['Return [%]'], 2)).ljust(7)}| "
-            f"B&H R %: {str(round(backtestResults['Buy & Hold Return [%]'], 2)).ljust(7)}| "
-            f"DD %: {str(round(backtestResults['Max. Drawdown [%]'], 2)).ljust(7)}| "
-            f"#T: {str(backtestResults['# Trades']).ljust(4)}| "
-            f"In {(backtestResults['End'] - backtestResults['Start']).days} days | "
-            f"Sharpe Ratio: {str(round(backtestResults['Sharpe Ratio'], 2)).ljust(5)}| "
-            f"Win Rate: {str(round(backtestResults['Win Rate [%]'], 2)).ljust(5)} |")
+def log(backtest_results):
+    if backtest_results['Return [%]'] > backtest_results['Buy & Hold Return [%]']:
+        print(f"| W R %: {str(round(backtest_results['Return [%]'], 2)).ljust(7)}| "
+            f"B&H R %: {str(round(backtest_results['Buy & Hold Return [%]'], 2)).ljust(7)}| "
+            f"DD %: {str(round(backtest_results['Max. Drawdown [%]'], 2)).ljust(7)}| "
+            f"#T: {str(backtest_results['# Trades']).ljust(4)}| "
+            f"In {(backtest_results['End'] - backtest_results['Start']).days} days | "
+            f"Sharpe Ratio: {str(round(backtest_results['Sharpe Ratio'], 2)).ljust(5)}| "
+            f"Win Rate: {str(round(backtest_results['Win Rate [%]'], 2)).ljust(5)} |")
     else:
-        print(f"| L R %: {str(round(backtestResults['Return [%]'], 2)).ljust(7)}| "
-            f"B&H R %: {str(round(backtestResults['Buy & Hold Return [%]'], 2)).ljust(7)}| "
-            f"DD %: {str(round(backtestResults['Max. Drawdown [%]'], 2)).ljust(7)}| "
-            f"#T: {str(backtestResults['# Trades']).ljust(4)}| "
-            f"In {(backtestResults['End'] - backtestResults['Start']).days} days | "
-            f"Sharpe Ratio: {str(round(backtestResults['Sharpe Ratio'], 2)).ljust(5)}| "
-            f"Win Rate: {str(round(backtestResults['Win Rate [%]'], 2)).ljust(5)} |")
+        print(f"| L R %: {str(round(backtest_results['Return [%]'], 2)).ljust(7)}| "
+            f"B&H R %: {str(round(backtest_results['Buy & Hold Return [%]'], 2)).ljust(7)}| "
+            f"DD %: {str(round(backtest_results['Max. Drawdown [%]'], 2)).ljust(7)}| "
+            f"#T: {str(backtest_results['# Trades']).ljust(4)}| "
+            f"In {(backtest_results['End'] - backtest_results['Start']).days} days | "
+            f"Sharpe Ratio: {str(round(backtest_results['Sharpe Ratio'], 2)).ljust(5)}| "
+            f"Win Rate: {str(round(backtest_results['Win Rate [%]'], 2)).ljust(5)} |")
 
-def logSimple(result):
+def log_simple(result):
     if result is None:
         return
     
@@ -32,40 +30,40 @@ def logSimple(result):
             f"Sharpe: {str(round(result['sharpe'], 2)).ljust(5)} | "
             f"Strategy: {result['strategy']}")
 
-def logAggregatedResults(results):
-    equityCurve = pd.DataFrame()
-    startingBalance = 100000
-    tradeCount = sum(result['# trades'] for result in results)
-    sharpeSum = sum(result['sharpe'] for result in results)
+def log_aggregated_results(results):
+    equity_curve = pd.DataFrame()
+    starting_balance = 100000
+    trade_count = sum(result['# trades'] for result in results)
+    sharpe_sum = sum(result['sharpe'] for result in results)
 
     if len(results) == 0:
         print("No results to aggregate.")
         return
     
-    equityCurve['DrawdownPct'] = sum(result['equity_curve']['DrawdownPct'] for result in results) / len(results)
-    equityCurve['Equity'] = sum(result['equity_curve']['Equity'] for result in results) / len(results)
+    equity_curve['DrawdownPct'] = sum(result['equity_curve']['DrawdownPct'] for result in results) / len(results)
+    equity_curve['Equity'] = sum(result['equity_curve']['Equity'] for result in results) / len(results)
 
     # Kinda sus
-    if equityCurve is None:
+    if equity_curve is None:
         print("No results to aggregate.")
         return
     
-    equityCurve.dropna(inplace=True)
+    equity_curve.dropna(inplace=True)
     
     print()
-    print(f"Final aggregated equity: ${round(equityCurve['Equity'].iloc[-1])}")
-    print(f"Return: {round(100 * (equityCurve['Equity'].iloc[-1] - startingBalance) / startingBalance, 2)}%")
-    print(f"Maximum aggregated drawdown: {round(equityCurve['DrawdownPct'].max() * 100, 2)}%")
-    print(f"Average Sharpe Ratio: {round(sharpeSum / len(results), 2)}")
-    print(f"Total trades: {tradeCount}")
+    print(f"Final aggregated equity: ${round(equity_curve['Equity'].iloc[-1])}")
+    print(f"Return: {round(100 * (equity_curve['Equity'].iloc[-1] - starting_balance) / starting_balance, 2)}%")
+    print(f"Maximum aggregated drawdown: {round(equity_curve['DrawdownPct'].max() * 100, 2)}%")
+    print(f"Average Sharpe Ratio: {round(sharpe_sum / len(results), 2)}")
+    print(f"Total trades: {trade_count}")
     print(f"Average trade duration: {round(np.mean([result['avgTradeDuration'].days for result in results]), 2)} days")
     print(f"Strategy was implemented on {len(results)} symbols.")
-    plotter.plot(equityCurve['Equity'])
+    plotter.plot(equity_curve['Equity'])
 
-def compareResults(strategies):
+def compare_results(strategies):
     print()
     for strategy, count in strategies.items():
                 print(f"Strategy {strategy} was selected {count} times.")
 
-    mostSelectedStrategy = max(strategies, key=strategies.get)
-    print(f"\nThe most selected strategy is {mostSelectedStrategy}, chosen {strategies[mostSelectedStrategy]} times.")
+    most_selected_strategy = max(strategies, key=strategies.get)
+    print(f"\nThe most selected strategy is {most_selected_strategy}, chosen {strategies[most_selected_strategy]} times.")

@@ -1,9 +1,9 @@
 {
-    "dailyRange": 0,
-    "buyAndHold": 0,
-    "soloRSI": 0,
-    "rocTrendFollowingBull": 0,
-    "rocTrendFollowingBear": 0,
-    "rocMeanReversion": 0,
-    "buyAfterRedDay": 0
+    "Daily_Range": 0,
+    "Buy_And_Hold": 0,
+    "solo_RSI": 0,
+    "ROC_Trend_Following_Bull": 0,
+    "ROC_Trend_Following_Bear": 0,
+    "ROC_Mean_Reversion": 0,
+    "Buy_After_Red_Day": 0
 }
