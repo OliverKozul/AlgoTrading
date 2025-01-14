@@ -7,6 +7,6 @@ if __name__ == "__main__":
     # symbols = ['ES=F', 'YM=F', 'NQ=F', 'RTY=F', 'ZB=F', 'GC=F', 'SI=F']
     symbols = dm.load_symbols('futures')
 
-    strategy = 'daily_range'
+    strategy = 'Daily_Range'
 
     st.run_master_backtest(symbols, strategy)

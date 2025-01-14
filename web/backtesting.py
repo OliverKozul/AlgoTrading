@@ -72,34 +72,30 @@ def register_callbacks(app):
         if backtest_type != "compare_strategies" and not selected_strategy:
             return "Please select a strategy for this backtesting type."
 
-        print(instruments)
-        print(selected_strategy)
-
         results = []
         if backtest_type == "compare_strategies":
             # Run compare strategies backtest
-            results = run_master_backtest(instruments, selected_strategy, True)
+            results = run_master_backtest(instruments, selected_strategy, compare_strategies=True, plot_results=False)
             # results = [run_backtest_process(symbol, selected_strategies, False) for symbol in instruments]
         elif backtest_type == "find_best":
             # Run find best strategy backtest
-            results = [find_best_backtest(symbol, selected_strategies_dict, False) for symbol in instruments]
-
+            results = run_master_backtest(instruments, selected_strategy, find_best=True, plot_results=False)
         elif backtest_type == "adaptive_strategy":
             # Run adaptive strategy backtest
-            results = [run_adaptive_backtest(symbol, selected_strategies_dict, False, 0, 0.5) for symbol in instruments]
-
-        # Filter out None results and prepare the table
-        results = [result for result in results if result is not None]
+            results = run_master_backtest(instruments, selected_strategy, adaptive_strategy=True, plot_results=False)
+        else:
+            # Run normal backtest
+            results = run_master_backtest(instruments, selected_strategy, plot_results=False)
 
         print(results)
 
         if not results:
             return "No results generated. Please check your selections."
 
-        return dash_table.DataTable(
-            data=results,
-            columns=[{"name": key, "id": key} for key in results[0].keys()],
-            style_table={'overflowX': 'auto', 'backgroundColor': '#333333', 'color': '#FFFFFF'},
-            style_header={"backgroundColor": "#444444", "color": "#FFFFFF"},
-            style_cell={"textAlign": "center", "backgroundColor": "#222222", "color": "#FFFFFF"}
-        )
+        # return dash_table.DataTable(
+        #     data=results,
+        #     columns=[{"name": key, "id": key} for key in results[0].keys()],
+        #     style_table={'overflowX': 'auto', 'backgroundColor': '#333333', 'color': '#FFFFFF'},
+        #     style_header={"backgroundColor": "#444444", "color": "#FFFFFF"},
+        #     style_cell={"textAlign": "center", "backgroundColor": "#222222", "color": "#FFFFFF"}
+        # )
