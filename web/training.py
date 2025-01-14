@@ -40,76 +40,74 @@ training_state = TrainingState()
 # Layout for the training tab
 
 def create_training_tab_layout():
-    return training_tab_layout
+    return  html.Div([
+        html.H3("Trading Skill Training", style={"textAlign": "center", "marginBottom": "20px", "color": "#FFFFFF"}),
 
-training_tab_layout = html.Div([
-    html.H3("Trading Skill Training", style={"textAlign": "center", "marginBottom": "20px", "color": "#FFFFFF"}),
-
-    html.Div([
-        html.Label("Select Instruments:", style={"color": "#FFFFFF"}),
-        dcc.Dropdown(
-            id="training-instruments-dropdown",
-            options=[{"label": symbol, "value": symbol} for symbol in mock_data.keys()],
-            multi=True,
-            placeholder="Choose instruments...",
-            style={"backgroundColor": "#333333", "color": "#FFFFFF"}
-        ),
-        html.Button("Start Training", id="start-training-button", style={"backgroundColor": "#1E90FF", "color": "#FFFFFF", "marginTop": "10px", "fontSize": "16px", "padding": "10px 20px"})
-    ], style={"marginBottom": "20px"}),
-
-    html.Div(id="training-session-controls", style={"display": "none", "color": "#FFFFFF"}, children=[
-        html.H4("Training Session", style={"textAlign": "center"}),
-        html.Div(id="training-instrument-info", style={"marginBottom": "10px"}),
-        html.Div(id="training-date-info", style={"marginBottom": "10px"}),
-        dcc.Graph(id="candlestick-graph", style={"height": "60vh"}),
         html.Div([
-            html.Button("Buy (A)", id="buy-button", accessKey="a", style={"backgroundColor": "#32CD32", "color": "#FFFFFF", "marginRight": "10px", "fontSize": "16px", "padding": "10px 20px"}),
-            html.Button("Sell (S)", id="sell-button", accessKey="s", style={"backgroundColor": "#FF4500", "color": "#FFFFFF", "marginRight": "10px", "fontSize": "16px", "padding": "10px 20px"}),
-            html.Button("Next Candle (D)", id="next-candle-button", accessKey="d", style={"backgroundColor": "#1E90FF", "color": "#FFFFFF", "fontSize": "16px", "padding": "10px 20px"})
-        ], style={"textAlign": "center", "marginTop": "20px", "marginBottom": "20px"}),
-        html.Div(id="closed-pnl-display", children="Closed PnL: $0.00", style={"marginBottom": "10px"}),
-        html.Div(id="open-pnl-display", children="Open PnL: $0.00", style={"marginBottom": "10px"}),
-        html.Div([
-            html.H5("Trade Log", style={"marginBottom": "10px"}),
-            dash_table.DataTable(
-                id="positions-table",
-                columns=[
-                    {"name": "Action", "id": "type"},
-                    {"name": "Price", "id": "price"},
-                    {"name": "Close Price", "id": "close_price"},
-                    {"name": "Profit/Loss", "id": "pnl"},
-                    {"name": "Quantity", "id": "quantity"},
-                    {"name": "Date", "id": "date"}
-                ],
-                style_table={'overflowX': 'auto', 'backgroundColor': '#333333', 'color': '#FFFFFF'},
-                style_header={"backgroundColor": "#444444", "color": "#FFFFFF"},
-                style_cell={"textAlign": "center", "backgroundColor": "#222222", "color": "#FFFFFF"}
+            html.Label("Select Instruments:", style={"color": "#FFFFFF"}),
+            dcc.Dropdown(
+                id="training-instruments-dropdown",
+                options=[{"label": symbol, "value": symbol} for symbol in mock_data.keys()],
+                multi=True,
+                placeholder="Choose instruments...",
+                style={"backgroundColor": "#333333", "color": "#FFFFFF"}
             ),
-            html.H5("Trading Statistics", style={"marginBottom": "10px"}),
-            dash_table.DataTable(
-                id="trading-statistics",
-                columns=[
-                    {"name": "Winrate %", "id": "winrate"},
-                    {"name": "Total Trades", "id": "total_trades"},
-                    {"name": "Winning Trades", "id": "winning_trades"},
-                    {"name": "Losing Trades", "id": "losing_trades"},
-                    {"name": "Average Win", "id": "average_win"},
-                    {"name": "Average Loss", "id": "average_loss"},
-                    {"name": "Average Trade", "id": "average_trade"},
-                    {"name": "Biggest Win", "id": "biggest_win"},
-                    {"name": "Biggest Loss", "id": "biggest_loss"},
-                    {"name": "Total PnL", "id": "total_pnl"},
-                    {"name": "Longest Winning Streak", "id": "longest_winning_streak"},
-                    {"name": "Longest Losing Streak", "id": "longest_losing_streak"}
-                ],
-                style_table={'overflowX': 'auto', 'backgroundColor': '#333333', 'color': '#FFFFFF'},
-                style_header={"backgroundColor": "#444444", "color": "#FFFFFF"},
-                style_cell={"textAlign": "center", "backgroundColor": "#222222", "color": "#FFFFFF"}
-            )
-        ]),
-        Keyboard(id="keyboard", captureKeys=["a", "s", "d"], n_keydowns=0)
-    ])
-], style={"backgroundColor": "#121212", "padding": "20px"})
+            html.Button("Start Training", id="start-training-button", style={"backgroundColor": "#1E90FF", "color": "#FFFFFF", "marginTop": "10px", "fontSize": "16px", "padding": "10px 20px"})
+        ], style={"marginBottom": "20px"}),
+
+        html.Div(id="training-session-controls", style={"display": "none", "color": "#FFFFFF"}, children=[
+            html.H4("Training Session", style={"textAlign": "center"}),
+            html.Div(id="training-instrument-info", style={"marginBottom": "10px"}),
+            html.Div(id="training-date-info", style={"marginBottom": "10px"}),
+            dcc.Graph(id="candlestick-graph", style={"height": "60vh"}),
+            html.Div([
+                html.Button("Buy (A)", id="buy-button", accessKey="a", style={"backgroundColor": "#32CD32", "color": "#FFFFFF", "marginRight": "10px", "fontSize": "16px", "padding": "10px 20px"}),
+                html.Button("Sell (S)", id="sell-button", accessKey="s", style={"backgroundColor": "#FF4500", "color": "#FFFFFF", "marginRight": "10px", "fontSize": "16px", "padding": "10px 20px"}),
+                html.Button("Next Candle (D)", id="next-candle-button", accessKey="d", style={"backgroundColor": "#1E90FF", "color": "#FFFFFF", "fontSize": "16px", "padding": "10px 20px"})
+            ], style={"textAlign": "center", "marginTop": "20px", "marginBottom": "20px"}),
+            html.Div(id="closed-pnl-display", children="Closed PnL: $0.00", style={"marginBottom": "10px"}),
+            html.Div(id="open-pnl-display", children="Open PnL: $0.00", style={"marginBottom": "10px"}),
+            html.Div([
+                html.H5("Trade Log", style={"marginBottom": "10px"}),
+                dash_table.DataTable(
+                    id="positions-table",
+                    columns=[
+                        {"name": "Action", "id": "type"},
+                        {"name": "Price", "id": "price"},
+                        {"name": "Close Price", "id": "close_price"},
+                        {"name": "Profit/Loss", "id": "pnl"},
+                        {"name": "Quantity", "id": "quantity"},
+                        {"name": "Date", "id": "date"}
+                    ],
+                    style_table={'overflowX': 'auto', 'backgroundColor': '#333333', 'color': '#FFFFFF'},
+                    style_header={"backgroundColor": "#444444", "color": "#FFFFFF"},
+                    style_cell={"textAlign": "center", "backgroundColor": "#222222", "color": "#FFFFFF"}
+                ),
+                html.H5("Trading Statistics", style={"marginBottom": "10px"}),
+                dash_table.DataTable(
+                    id="trading-statistics",
+                    columns=[
+                        {"name": "Winrate %", "id": "winrate"},
+                        {"name": "Total Trades", "id": "total_trades"},
+                        {"name": "Winning Trades", "id": "winning_trades"},
+                        {"name": "Losing Trades", "id": "losing_trades"},
+                        {"name": "Average Win", "id": "average_win"},
+                        {"name": "Average Loss", "id": "average_loss"},
+                        {"name": "Average Trade", "id": "average_trade"},
+                        {"name": "Biggest Win", "id": "biggest_win"},
+                        {"name": "Biggest Loss", "id": "biggest_loss"},
+                        {"name": "Total PnL", "id": "total_pnl"},
+                        {"name": "Longest Winning Streak", "id": "longest_winning_streak"},
+                        {"name": "Longest Losing Streak", "id": "longest_losing_streak"}
+                    ],
+                    style_table={'overflowX': 'auto', 'backgroundColor': '#333333', 'color': '#FFFFFF'},
+                    style_header={"backgroundColor": "#444444", "color": "#FFFFFF"},
+                    style_cell={"textAlign": "center", "backgroundColor": "#222222", "color": "#FFFFFF"}
+                )
+            ]),
+            Keyboard(id="keyboard", captureKeys=["a", "s", "d"], n_keydowns=0)
+        ])
+    ], style={"backgroundColor": "#121212", "padding": "20px"})
 
 # Callbacks for the training tab
 def register_callbacks(app):

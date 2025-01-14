@@ -115,7 +115,7 @@ class Daily_Range(Base_Strategy):
         super().next()
 
 # Solo RSI strategy
-class solo_RSI(Base_Strategy):
+class Solo_RSI(Base_Strategy):
     def next(self):
         super().close_next_green_day()
         super().next()

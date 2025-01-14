@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 
 symbols = dm.load_symbols('SP')
 
-def create_pnl_calculator_layout():
+def create_pnl_calculator_tab_layout():
     return html.Div([
         html.H1("P&L Calculator"),
 

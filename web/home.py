@@ -1,24 +1,27 @@
 from dash import Dash, dcc, html, Input, Output
-import strategies.strategy_tester as st
 import plotly.graph_objs as go
-import core.data_manipulator as dm
+from core.data_manipulator import load_symbols, snake_case_to_name
+from strategies.strategy_tester import run_backtest, load_strategies_from_json
 from datetime import datetime
-from web.strategy_creator import create_strategy_creator_layout, register_callbacks
-from web.pnl_calculator import create_pnl_calculator_layout, register_callbacks
+from web.strategy_creator import create_strategy_creator_tab_layout, register_callbacks
+from web.pnl_calculator import create_pnl_calculator_tab_layout, register_callbacks
 from web.training import create_training_tab_layout, register_callbacks
+from web.backtesting import create_backtesting_tab_layout, register_callbacks
+
 
 app = Dash("Cool", suppress_callback_exceptions=True)
 
 # Load all S&P 500 symbols
-symbols = dm.load_symbols('SP')
-strategies_dict = st.load_strategies_from_json('strategies\strategies.json')
-community_strategies_dict = st.load_strategies_from_json('strategies\community_strategies.json')
+symbols = load_symbols('SP')
+strategies_dict = load_strategies_from_json('strategies\strategies.json')
+community_strategies_dict = load_strategies_from_json('strategies\community_strategies.json')
 
 # Get current year
 last_year = datetime.today().year - 1
 
 app.layout = html.Div([
-    dcc.Tabs(id='tabs', value='backtest', children=[
+    dcc.Tabs(id='tabs', value='home', children=[
+        dcc.Tab(label='Visualize Backtests', value='home'),
         dcc.Tab(label='Backtest', value='backtest'),
         dcc.Tab(label='Strategy Creator', value='strategy_creator'),
         dcc.Tab(label="P&L Calculator", value='pnl_caulculator'),
@@ -27,74 +30,100 @@ app.layout = html.Div([
     html.Div(id='tabs-content')
 ])
 
-backtest_layout = html.Div([
-    html.H1("Backtest Results"),
+def create_home_tab_layout():
+    return html.Div([
+        html.H3("Backtest Results", style={"textAlign": "center", "marginBottom": "20px", "color": "#FFFFFF"}),
 
-    # Ticker selection
-    dcc.Dropdown(
-        id="ticker-dropdown",
-        options=[{'label': symbol, 'value': symbol} for symbol in symbols],
-        multi=True,
-        placeholder="Select companies",
-        value=['AMD'],  # Default selection
-        style={'width': '100%'}
-    ),
+        # Ticker Selection
+        html.Div([
+            html.Label("Select Companies:", style={"color": "#FFFFFF"}),
+            dcc.Dropdown(
+                id="ticker-dropdown",
+                options=[{'label': symbol, 'value': symbol} for symbol in symbols],
+                multi=True,
+                placeholder="Select companies",
+                value=['AMD'],  # Default selection
+                style={"backgroundColor": "#333333", "color": "#FFFFFF"}
+            ),
+        ], style={"marginBottom": "20px"}),
 
-    # Official Strategies
-    html.Div([
-        html.H3("Official Strategies"),
-        dcc.Dropdown(
-            id="strategy-dropdown-official",
-            options=[
-                {'label': dm.snake_case_to_name(key), 'value': key}
-                for key in strategies_dict.keys()
-            ],
-            multi=True,  # Allow multiple selections
-            value=['Buy_And_Hold'],  # Default selection
-            style={'width': '100%'}
-        )
-    ], style={'margin-top': '20px'}),
+        # Official Strategies
+        html.Div([
+            html.H3("Official Strategies", style={"color": "#FFFFFF"}),
+            dcc.Dropdown(
+                id="strategy-dropdown-official",
+                options=[
+                    {'label': snake_case_to_name(key), 'value': key}
+                    for key in strategies_dict.keys()
+                ],
+                multi=True,  # Allow multiple selections
+                value=['Buy_And_Hold'],  # Default selection
+                style={"backgroundColor": "#333333", "color": "#FFFFFF"}
+            ),
+        ], style={"marginBottom": "20px"}),
 
-    # Community Strategies
-    html.Div([
-        html.H3("Community Strategies"),
-        dcc.Dropdown(
-            id="strategy-dropdown-community",
-            options=[
-                {'label': dm.snake_case_to_name(key), 'value': key}
-                for key in community_strategies_dict.keys()
-            ],
-            multi=True,  # Allow multiple selections
-            value=[],  # No default selection
-            style={'width': '100%'}
-        )
-    ], style={'margin-top': '20px'}),
+        # Community Strategies
+        html.Div([
+            html.H3("Community Strategies", style={"color": "#FFFFFF"}),
+            dcc.Dropdown(
+                id="strategy-dropdown-community",
+                options=[
+                    {'label': snake_case_to_name(key), 'value': key}
+                    for key in community_strategies_dict.keys()
+                ],
+                multi=True,  # Allow multiple selections
+                value=[],  # No default selection
+                style={"backgroundColor": "#333333", "color": "#FFFFFF"}
+            ),
+        ], style={"marginBottom": "20px"}),
 
-    # Date Range Selection
-    html.Div([
-        dcc.Dropdown(
-            id='start-year-dropdown',
-            options=[{'label': str(year), 'value': str(year)} for year in range(last_year - 10, last_year + 1)],
-            value=str(last_year - 2),  # Default to 2 years ago
-            style={'width': '48%', 'display': 'inline-block'}
+        # Date Range Selection
+        html.Div([
+            html.Label("Select Date Range:", style={"color": "#FFFFFF"}),
+            html.Div([
+                dcc.Dropdown(
+                    id='start-year-dropdown',
+                    options=[{'label': str(year), 'value': str(year)} for year in range(last_year - 10, last_year + 1)],
+                    value=str(last_year - 2),  # Default to 2 years ago
+                    style={"width": "48%", "display": "inline-block", "backgroundColor": "#333333", "color": "#FFFFFF"}
+                ),
+                dcc.Dropdown(
+                    id='end-year-dropdown',
+                    options=[{'label': str(year), 'value': str(year)} for year in range(last_year - 10, last_year + 1)],
+                    value=str(last_year),  # Default to today
+                    style={"width": "48%", "display": "inline-block", "backgroundColor": "#333333", "color": "#FFFFFF"}
+                ),
+            ]),
+        ], style={"marginBottom": "20px"}),
+
+        # Run Backtest Button
+        html.Button(
+            "Run Backtest",
+            id="run-btn",
+            style={
+                "backgroundColor": "#1E90FF",
+                "color": "#FFFFFF",
+                "fontSize": "16px",
+                "padding": "10px 20px",
+                "border": "none",
+                "cursor": "pointer",
+                "marginTop": "10px"
+            },
         ),
-        dcc.Dropdown(
-            id='end-year-dropdown',
-            options=[{'label': str(year), 'value': str(year)} for year in range(last_year - 10, last_year + 1)],
-            value=str(last_year),  # Default to today
-            style={'width': '48%', 'display': 'inline-block'}
-        ),
-    ], style={'margin-top': '10px'}),
 
-    # Run Backtest Button
-    html.Button("Run Backtest", id="run-btn", style={'margin-top': '10px', 'padding': '10px 20px', 'background-color': '#007BFF', 'color': 'white', 'border': 'none', 'border-radius': '5px', 'cursor': 'pointer'}),
+        # Equity Curve Plot
+        html.Div([
+            html.Label("Equity Curve:", style={"color": "#FFFFFF"}),
+            dcc.Graph(
+                id="equity-curve",
+                style={"backgroundColor": "#333333"}
+            ),
+        ], style={"marginTop": "20px"}),
 
-    # Equity Curve Plot
-    dcc.Graph(id="equity-curve"),
+        # Error Message
+        html.Div(id="error-message", style={"color": "red", "marginTop": "20px"}),
+    ], style={"backgroundColor": "#121212", "padding": "20px"})
 
-    # Error Message
-    html.Div(id="error-message", style={'color': 'red'})
-])
 
 
 @app.callback(
@@ -102,8 +131,10 @@ backtest_layout = html.Div([
     Input('tabs', 'value')
 )
 def render_tab_content(tab):
-    if tab == 'backtest':
-        return backtest_layout
+    if tab == 'home':
+        return create_home_tab_layout()
+    elif tab == 'backtest':
+        return create_backtesting_tab_layout()
     elif tab == 'strategy_creator':
         return create_strategy_creator_layout()
     elif tab == 'pnl_caulculator':
@@ -141,7 +172,7 @@ def update_equity_curve(n_clicks, selected_symbols, official_strategies, communi
 
     for symbol in selected_symbols:
         for strategy in selected_strategies:  # Loop through selected strategies
-            results = st.run_backtest(symbol, strategy, False, start_date, end_date)
+            results = run_backtest(symbol, strategy, False, start_date, end_date)
             if results is None:
                 error_message = f"No trades were made for {symbol} using {strategy}."
                 continue

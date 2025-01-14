@@ -45,7 +45,7 @@ def camel_case_to_name(camel_case_str):
 
 def snake_case_to_name(snake_case_str):
     # Replace underscores with spaces and capitalize the first letter of the string
-    return snake_case_str.replace('_', ' ').title()
+    return snake_case_str.replace('_', ' ')
 
 def generate_simple_result(symbol, strategy, result):
     simplified_result = {

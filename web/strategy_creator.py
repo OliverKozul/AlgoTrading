@@ -4,7 +4,7 @@ from dash.dependencies import ALL
 import json
 import strategies.strategy_tester as st
 
-def create_strategy_creator_layout():
+def create_strategy_creator_tab_layout():
     return html.Div([
         html.H1("Strategy Creator"),
         html.Label("Strategy Name:"),

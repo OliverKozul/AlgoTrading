@@ -10,7 +10,7 @@ def load_strategies_from_json(file_path):
     with open(file_path, 'r') as file:
         return json.load(file)
 
-def run_master_backtest(symbols, strategy):
+def run_master_backtest(symbols, strategy, compare_strategies = False, find_best = False, adaptive_strategy = False, plot_results = False, sort_results = False, sorting_criteria = 'Sharpe Ratio'):
     with open('data\config.json', 'r') as file:
         config = json.load(file)
     
@@ -28,15 +28,12 @@ def run_master_backtest(symbols, strategy):
         # Use Pool to parallelize the backtest process
         with Pool(min(len(symbols), cpu_count())) as pool:
             # Run backtest in parallel and get the results
-            if config['compare_strategies']:
+            if config['compare_strategies'] or compare_strategies:
                 results = pool.starmap(run_backtest_process, [(symbol, strategy, config['plot_results']) for symbol in symbols for strategy in strategies.keys()])
-
-            elif config['find_best']:
+            elif config['find_best'] or find_best:
                 results = pool.starmap(find_best_backtest, [(symbol, strategies, config['plot_results']) for symbol in symbols])
-
-            elif config['adaptive_strategy']:
+            elif config['adaptive_strategy'] or adaptive_strategy:
                 results = pool.starmap(run_adaptive_backtest, [(symbol, strategies, config['plot_results']) for symbol in symbols])
-
             else:
                 results = pool.starmap(run_backtest_process, [(symbol, strategy, config['plot_results']) for symbol in symbols])
 
@@ -53,6 +50,8 @@ def run_master_backtest(symbols, strategy):
             logger.compare_results(strategies)
 
         logger.log_aggregated_results(results)
+
+        return results
 
 def run_backtest(symbol, strategy, plot = False, start_date = None, end_date = None, start_percent = 0, end_percent = 1):
     df = dm.fetch_data(symbol, start_date, end_date)
