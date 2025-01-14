@@ -136,19 +136,19 @@ def create_solo_rsi_buy_signals(df, rsi_threshold=10):
 def remove_solo_rsi_columns(df):
     df.drop(columns=['rsi'], inplace=True)
 
-# ROC Trendfollowing Bull
+# ROC trend_following Bull
 
-def create_roc_trendfollowing_bull_signals(df):
-    add_roc_trendfollowing_bull_columns(df)
-    create_roc_trendfollowing_bull_buy_signals(df)
-    remove_roc_trendfollowing_bull_columns(df)
+def create_roc_trend_following_bull_signals(df):
+    add_roc_trend_following_bull_columns(df)
+    create_roc_trend_following_bull_buy_signals(df)
+    remove_roc_trend_following_bull_columns(df)
 
-def add_roc_trendfollowing_bull_columns(df, rocPeriod = 60):
+def add_roc_trend_following_bull_columns(df, rocPeriod = 60):
     df['roc'] = ta.roc(df['Close'], length=rocPeriod)
     df['atr'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
     df.dropna(inplace=True)
 
-def create_roc_trendfollowing_bull_buy_signals(df, rocThreshold = 30):
+def create_roc_trend_following_bull_buy_signals(df, rocThreshold = 30):
     # Ensure the DataFrame has necessary columns
     required_columns = ['Open', 'High', 'Low', 'Close', 'Date', 'roc']
     assert all(col in df.columns for col in required_columns), \
@@ -160,22 +160,22 @@ def create_roc_trendfollowing_bull_buy_signals(df, rocThreshold = 30):
     # Apply the condition to the 'BUYSignal' column
     df.loc[buySignalCondition, 'BUYSignal'] = 1
 
-def remove_roc_trendfollowing_bull_columns(df):
+def remove_roc_trend_following_bull_columns(df):
     df.drop(columns=['roc'], inplace=True)
 
-# ROC Trendfollowing Bear
+# ROC trend_following Bear
 
-def create_roc_trendfollowing_bear_signals(df):
-    add_roc_trendfollowing_bear_columns(df)
-    create_roc_trendfollowing_bear_buy_signals(df)
-    remove_roc_trendfollowing_bear_columns(df)
+def create_roc_trend_following_bear_signals(df):
+    add_roc_trend_following_bear_columns(df)
+    create_roc_trend_following_bear_buy_signals(df)
+    remove_roc_trend_following_bear_columns(df)
 
-def add_roc_trendfollowing_bear_columns(df, rocPeriod = 60):
+def add_roc_trend_following_bear_columns(df, rocPeriod = 60):
     df['roc'] = ta.roc(df['Close'], length=rocPeriod)
     df['atr'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
     df.dropna(inplace=True)
 
-def create_roc_trendfollowing_bear_buy_signals(df, rocThreshold = -30):
+def create_roc_trend_following_bear_buy_signals(df, rocThreshold = -30):
     # Ensure the DataFrame has necessary columns
     required_columns = ['Open', 'High', 'Low', 'Close', 'Date', 'roc']
     assert all(col in df.columns for col in required_columns), \
@@ -187,7 +187,7 @@ def create_roc_trendfollowing_bear_buy_signals(df, rocThreshold = -30):
     # Apply the condition to the 'BUYSignal' column
     df.loc[buySignalCondition, 'BUYSignal'] = 1
 
-def remove_roc_trendfollowing_bear_columns(df):
+def remove_roc_trend_following_bear_columns(df):
     df.drop(columns=['roc'], inplace=True)
 
 # ROC Mean Reversion
