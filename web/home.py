@@ -3,10 +3,10 @@ import plotly.graph_objs as go
 from core.data_manipulator import load_symbols, snake_case_to_name
 from strategies.strategy_tester import run_backtest, load_strategies_from_json
 from datetime import datetime
-from web.strategy_creator import create_strategy_creator_tab_layout, register_callbacks
-from web.pnl_calculator import create_pnl_calculator_tab_layout, register_callbacks
-from web.training import create_training_tab_layout, register_callbacks
-from web.backtesting import create_backtesting_tab_layout, register_callbacks
+import web.backtesting as backtesting
+import web.strategy_creator as strategy_creator
+import web.pnl_calculator as pnl_calculator
+import web.training as training
 
 
 app = Dash("Cool", suppress_callback_exceptions=True)
@@ -24,7 +24,7 @@ app.layout = html.Div([
         dcc.Tab(label='Visualize Backtests', value='home'),
         dcc.Tab(label='Backtest', value='backtest'),
         dcc.Tab(label='Strategy Creator', value='strategy_creator'),
-        dcc.Tab(label="P&L Calculator", value='pnl_caulculator'),
+        dcc.Tab(label="P&L Calculator", value='pnl_calculator'),
         dcc.Tab(label="Training", value='training')
     ]),
     html.Div(id='tabs-content')
@@ -124,8 +124,6 @@ def create_home_tab_layout():
         html.Div(id="error-message", style={"color": "red", "marginTop": "20px"}),
     ], style={"backgroundColor": "#121212", "padding": "20px"})
 
-
-
 @app.callback(
     Output('tabs-content', 'children'),
     Input('tabs', 'value')
@@ -134,16 +132,19 @@ def render_tab_content(tab):
     if tab == 'home':
         return create_home_tab_layout()
     elif tab == 'backtest':
-        return create_backtesting_tab_layout()
+        return backtesting.create_backtesting_tab_layout()
     elif tab == 'strategy_creator':
-        return create_strategy_creator_layout()
-    elif tab == 'pnl_caulculator':
-        return create_pnl_calculator_layout()
+        return strategy_creator.create_strategy_creator_tab_layout()
+    elif tab == 'pnl_calculator':
+        return pnl_calculator.create_pnl_calculator_tab_layout()
     elif tab == 'training':
-        return create_training_tab_layout()
+        return training.create_training_tab_layout()
 
-# Register callbacks for the strategy creator
-register_callbacks(app)
+# Register callbacks
+backtesting.register_callbacks(app)
+strategy_creator.register_callbacks(app)
+pnl_calculator.register_callbacks(app)
+training.register_callbacks(app)
 
 # Your existing callback for the backtest
 @app.callback(

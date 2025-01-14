@@ -17,9 +17,9 @@ def fetch_data(ticker):
     }).reset_index(drop=True)
 
 mock_data = {
-    "AAPL": fetch_data("AAPL"),
-    "GOOG": fetch_data("GOOG"),
-    "MSFT": fetch_data("MSFT")
+    "AAPL": None,
+    "GOOG": None,
+    "MSFT": None,
 }
 
 class TradingStats:
@@ -40,7 +40,7 @@ training_state = TrainingState()
 # Layout for the training tab
 
 def create_training_tab_layout():
-    return  html.Div([
+    return html.Div([
         html.H3("Trading Skill Training", style={"textAlign": "center", "marginBottom": "20px", "color": "#FFFFFF"}),
 
         html.Div([
@@ -145,6 +145,7 @@ def register_callbacks(app):
 
         if button_id == "start-training-button" and selected_instruments:
             training_state.instrument = random.choice(selected_instruments)
+            mock_data[training_state.instrument] = fetch_data(training_state.instrument)
             training_state.current_date_idx = 100
             training_state.stats = TradingStats()
 
