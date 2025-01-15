@@ -8,54 +8,96 @@ symbols = dm.load_symbols('SP')
 
 def create_pnl_calculator_tab_layout():
     return html.Div([
-        html.H1("P&L Calculator"),
+        # Header
+        html.H3("P&L Calculator", style={"textAlign": "center", "marginBottom": "20px", "color": "#FFFFFF"}),
 
         # Symbol Selection
-        html.Label("Select Symbol:"),
-        dcc.Dropdown(
-            id="symbol-dropdown",
-            options=symbols,
-            value="AAPL",
-            placeholder="Select a symbol",
-            style={'width': '100%'}
+        html.Div([
+            html.Label("Select Symbol:", style={"color": "#FFFFFF"}),
+            dcc.Dropdown(
+                id="symbol-dropdown",
+                options=symbols,
+                value="AAPL",
+                placeholder="Select a symbol",
+                style={
+                    "width": "100%", 
+                    "backgroundColor": "#333333", 
+                    "color": "#FFFFFF"
+                }
+            ),
+        ], style={"marginBottom": "20px"}),
+
+        # Position Type Selection
+        html.Div([
+            html.Label("Position Type:", style={"color": "#FFFFFF"}),
+            dcc.Dropdown(
+                id="position-type",
+                options=[
+                    {"label": "Stock", "value": "stock"},
+                    {"label": "Buy Call", "value": "buy_call"},
+                    {"label": "Sell Call", "value": "sell_call"},
+                    {"label": "Buy Put", "value": "buy_put"},
+                    {"label": "Sell Put", "value": "sell_put"}
+                ],
+                placeholder="Select position type",
+                style={
+                    "width": "100%", 
+                    "backgroundColor": "#333333", 
+                    "color": "#FFFFFF"
+                }
+            ),
+        ], style={"marginBottom": "20px"}),
+
+        # Dynamic Position Inputs
+        html.Div(id="position-inputs", style={"marginBottom": "20px"}),
+
+        # Add Position Button
+        html.Button(
+            "Add Position",
+            id="add-position-btn",
+            style={
+                "backgroundColor": "#1E90FF",
+                "color": "#FFFFFF",
+                "fontSize": "16px",
+                "padding": "10px 20px",
+                "border": "none",
+                "cursor": "pointer",
+                "marginTop": "10px",
+                "width": "100%"
+            },
         ),
 
-        # Add Position
-        html.Label("Position Type:"),
-        dcc.Dropdown(
-            id="position-type",
-            options=[
-                {"label": "Stock", "value": "stock"},
-                {"label": "Buy Call", "value": "buy_call"},
-                {"label": "Sell Call", "value": "sell_call"},
-                {"label": "Buy Put", "value": "buy_put"},
-                {"label": "Sell Put", "value": "sell_put"}
-            ],
-            placeholder="Select position type",
-            style={'width': '100%'}
-        ),
-
-        html.Div(id="position-inputs"),
-
-        html.Button("Add Position", id="add-position-btn", style={
-            'margin-top': '10px',
-            'padding': '10px 20px',
-            'background-color': '#007BFF',
-            'color': 'white',
-            'border': 'none',
-            'border-radius': '5px',
-            'cursor': 'pointer'
-        }),
+        # Separator
+        html.Hr(style={"borderColor": "#555555"}),
 
         # Positions List
-        html.Hr(),
-        html.Div(id="positions-list", style={'margin-top': '20px'}),
+        html.Div(
+            id="positions-list", 
+            style={
+                "marginTop": "20px", 
+                "padding": "10px", 
+                "backgroundColor": "#333333", 
+                "color": "#FFFFFF", 
+                "border": "1px solid #555555"
+            }
+        ),
+
+        # Separator
+        html.Hr(style={"borderColor": "#555555"}),
 
         # P&L Graph
-        html.Hr(),
-        dcc.Graph(id="pnl-graph"),
-        dcc.Store(id="positions-data", data=[])  # Store positions
-    ])
+        dcc.Graph(
+            id="pnl-graph",
+            style={
+                "backgroundColor": "#121212", 
+                "border": "1px solid #555555"
+            }
+        ),
+
+        # Hidden Store for Positions Data
+        dcc.Store(id="positions-data", data=[])
+    ], style={"backgroundColor": "#121212", "padding": "20px"})
+
 
 def register_callbacks(app):
     # Callback for updating position input fields based on selected position type
@@ -242,4 +284,3 @@ def register_callbacks(app):
         )
 
         return fig
-

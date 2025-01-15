@@ -6,36 +6,79 @@ import strategies.strategy_tester as st
 
 def create_strategy_creator_tab_layout():
     return html.Div([
-        html.H1("Strategy Creator"),
-        html.Label("Strategy Name:"),
-        dcc.Input(id="strategy-name", type="text", placeholder="Enter strategy name", style={'width': '100%'}),
-        
-        html.Label("Select Indicators:"),
-        dcc.Dropdown(
-            id="indicator-dropdown",
-            options=[
-                {'label': 'ROC', 'value': 'roc'},
-                {'label': 'ATR', 'value': 'atr'},
-                {'label': 'EMA', 'value': 'ema'}
-            ],
-            multi=True,
-            placeholder="Select indicators",
-            style={'width': '100%'},
-            value=[]
+        # Header
+        html.H3("Strategy Creator", style={"textAlign": "center", "marginBottom": "20px", "color": "#FFFFFF"}),
+
+        # Strategy Name Input
+        html.Div([
+            html.Label("Strategy Name:", style={"color": "#FFFFFF"}),
+            dcc.Input(
+                id="strategy-name", 
+                type="text", 
+                placeholder="Enter strategy name", 
+                style={
+                    "width": "100%", 
+                    "backgroundColor": "#333333", 
+                    "color": "#FFFFFF", 
+                    "padding": "10px", 
+                    "border": "1px solid #555555"
+                }
+            ),
+        ], style={"marginBottom": "20px"}),
+
+        # Indicator Selection
+        html.Div([
+            html.Label("Select Indicators:", style={"color": "#FFFFFF"}),
+            dcc.Dropdown(
+                id="indicator-dropdown",
+                options=[
+                    {'label': 'ROC', 'value': 'roc'},
+                    {'label': 'ATR', 'value': 'atr'},
+                    {'label': 'EMA', 'value': 'ema'}
+                ],
+                multi=True,
+                placeholder="Select indicators",
+                style={
+                    "width": "100%", 
+                    "backgroundColor": "#333333", 
+                    "color": "#FFFFFF"
+                },
+                value=[]
+            ),
+        ], style={"marginBottom": "20px"}),
+
+        # Dynamic Inputs Section
+        html.Div(id="dynamic-inputs", style={"marginBottom": "20px"}),  # Container for dynamic inputs
+
+        # Create Strategy Button
+        html.Button(
+            "Create Strategy",
+            id="create-strategy-btn",
+            style={
+                "backgroundColor": "#1E90FF",
+                "color": "#FFFFFF",
+                "fontSize": "16px",
+                "padding": "10px 20px",
+                "border": "none",
+                "cursor": "pointer",
+                "marginTop": "10px",
+                "width": "100%"
+            },
         ),
-        
-        html.Div(id="dynamic-inputs"),  # Container for dynamic inputs
-        
-        html.Button("Create Strategy", id="create-strategy-btn", style={
-            'margin-top': '10px', 
-            'padding': '10px 20px', 
-            'background-color': '#007BFF', 
-            'color': 'white', 
-            'border': 'none', 
-            'border-radius': '5px', 
-            'cursor': 'pointer'}),
-        html.Div(id="strategy-feedback", style={'margin-top': '10px'})
-    ])
+
+        # Feedback Section
+        html.Div(
+            id="strategy-feedback", 
+            style={
+                "marginTop": "20px", 
+                "color": "#FFFFFF", 
+                "padding": "10px", 
+                "backgroundColor": "#333333", 
+                "border": "1px solid #555555"
+            }
+        ),
+    ], style={"backgroundColor": "#121212", "padding": "20px"})
+
 
 def register_callbacks(app):
     @app.callback(
