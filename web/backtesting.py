@@ -90,20 +90,7 @@ def register_callbacks(app):
 
         if not results:
             return "No results generated. Please check your selections."
-
-        # Process the results to structure the data for display
-        # table_data = []
-        # for result in results:
-        #     table_data.append({
-        #         "Instrument": result['symbol'],
-        #         "Return": f"{result['return']:.2f} %",
-        #         "Max. Drawdown": f"{result['maxDrawdown']:.2f} %",
-        #         "Sharpe": f"{result['sharpe']:.2f}",
-        #         "# Trades": result['# trades'],
-        #         "Avg Trade Duration": str(result['avgTradeDuration']),
-        #         "Strategy": snake_case_to_name(result['strategy'])
-        #     })
-        
+            
         table_data = process_results_to_table(results)
 
         # Create the Dash DataTable

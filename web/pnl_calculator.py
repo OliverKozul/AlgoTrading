@@ -1,5 +1,6 @@
 from dash import dcc, html, Input, Output, State, callback, ctx, ALL
 from dash.exceptions import PreventUpdate
+from web.utils import apply_dark_theme
 import core.data_manipulator as dm
 import numpy as np
 import plotly.graph_objects as go
@@ -220,7 +221,9 @@ def register_callbacks(app):
     )
     def update_pnl_graph(positions, symbol):
         if not positions:
-            return go.Figure()
+            figure = go.Figure()
+            apply_dark_theme(figure)
+            return figure
 
         # Calculate the price range dynamically
         min_price_in_positions = min(
@@ -279,8 +282,8 @@ def register_callbacks(app):
         fig.update_layout(
             title=f"P&L Graph for {symbol}",
             xaxis_title="Price",
-            yaxis_title="P&L",
-            template="plotly_white"
+            yaxis_title="P&L"
         )
+        apply_dark_theme(fig)
 
         return fig
