@@ -1,6 +1,6 @@
 from dash import Dash, dash_table, dcc, html, Input, Output, State, callback_context
 from dash_extensions import Keyboard
-from core.data_manipulator import fetch_data
+from core.data_manipulator import fetch_data, load_symbols
 from web.utils import apply_dark_theme
 import random
 import pandas as pd
@@ -8,11 +8,7 @@ import yfinance as yf
 import datetime
 import plotly.graph_objs as go
 
-stock_data = {
-    "AAPL": None,
-    "GOOG": None,
-    "MSFT": None,
-}
+stock_data = {symbol: None for symbol in load_symbols('SP')}
 
 class TradingStats:
     def __init__(self):
@@ -20,6 +16,7 @@ class TradingStats:
         self.closed_pnl = 0.00
         self.open_pnl = 0.00
         self.open_positions = []
+        self.open_quantity = 0
 
 class TrainingState:
     def __init__(self):
@@ -59,6 +56,7 @@ def create_training_tab_layout():
             ], style={"textAlign": "center", "marginTop": "20px", "marginBottom": "20px"}),
             html.Div(id="closed-pnl-display", children="Closed PnL: $0.00", style={"marginBottom": "10px"}),
             html.Div(id="open-pnl-display", children="Open PnL: $0.00", style={"marginBottom": "10px"}),
+            html.Div(id="open-quantity-display", children="Open Quantity: 0", style={"marginBottom": "10px"}),
             html.Div([
                 html.H5("Trade Log", style={"marginBottom": "10px"}),
                 dash_table.DataTable(
@@ -69,7 +67,8 @@ def create_training_tab_layout():
                         {"name": "Close Price", "id": "close_price"},
                         {"name": "Profit/Loss", "id": "pnl"},
                         {"name": "Quantity", "id": "quantity"},
-                        {"name": "Date", "id": "date"}
+                        {"name": "Open Date", "id": "open_date"},
+                        {"name": "Close Date", "id": "close_date"}
                     ],
                     style_table={'overflowX': 'auto', 'backgroundColor': '#333333', 'color': '#FFFFFF'},
                     style_header={"backgroundColor": "#444444", "color": "#FFFFFF"},
@@ -116,6 +115,7 @@ def register_callbacks(app):
             Output("pnl-graph-training", "figure"),
             Output("closed-pnl-display", "children"),
             Output("open-pnl-display", "children"),
+            Output("open-quantity-display", "children"),
             Output("positions-table", "data"),
             Output("trading-statistics", "data")
         ],
@@ -136,7 +136,7 @@ def register_callbacks(app):
         key_pressed = key_pressed["key"].upper() if key_pressed else None
         ctx = callback_context
         if not ctx.triggered:
-            return ({"display": "none"}, "", "", go.Figure(), go.Figure(), "Closed PnL: $0.00", "Open PnL: $0.00", [], [])
+            return ({"display": "none"}, "", "", go.Figure(), go.Figure(), "Closed PnL: $0.00", "Open PnL: $0.00", "Open Quantity: 0", [], [])
 
         button_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
@@ -146,7 +146,7 @@ def register_callbacks(app):
         instrument = training_state.instrument
 
         if not instrument:
-            return ({"display": "none"}, "", date_info, go.Figure(), go.Figure(), f"Closed PnL: ${training_state.stats.closed_pnl}", f"Open PnL: ${training_state.stats.open_pnl}", [], [])
+            return ({"display": "none"}, "", date_info, go.Figure(), go.Figure(), f"Closed PnL: ${training_state.stats.closed_pnl}", f"Open PnL: ${training_state.stats.open_pnl}", f"Open Quantity: {training_state.stats.open_quantity}", [], [])
         if button_id in ["buy-button", "sell-button"] or key_pressed in ["A", "S"]:
             handle_buy_sell(instrument, button_id, key_pressed)
         if button_id == "next-candle-button" or key_pressed == "D":
@@ -178,6 +178,7 @@ def handle_start_training(selected_instruments):
         pnl_fig,
         "Closed PnL: $0.00",
         "Open PnL: $0.00",
+        "Open Quantity: 0",
         [],
         []
     )
@@ -186,6 +187,7 @@ def handle_buy_sell(instrument, button_id, key_pressed):
     current_data = stock_data[instrument].iloc[training_state.current_date_idx]
     action = "Buy" if button_id == "buy-button" or key_pressed == "A" else "Sell"
     quantity = 1 if action == "Buy" else -1
+    training_state.stats.open_quantity += quantity
 
     for pos in training_state.stats.open_positions:
         if pos["quantity"] * quantity < 0:
@@ -194,19 +196,21 @@ def handle_buy_sell(instrument, button_id, key_pressed):
                 partial_pos = pos.copy()
                 partial_pos["quantity"] = quantity
                 partial_pos["close_price"] = current_data["Close"]
+                partial_pos["close_date"] = current_data["Date"]
                 partial_pos["pnl"] = round((partial_pos["close_price"] - pos["price"]) * partial_pos["quantity"], 2)
                 training_state.stats.closed_positions.insert(0, pos)
                 quantity = 0
             else:
                 quantity += pos["quantity"]
                 pos["close_price"] = current_data["Close"]
+                pos["close_date"] = current_data["Date"]
                 pos["pnl"] = round((pos["close_price"] - pos["price"]) * pos["quantity"], 2)
                 training_state.stats.closed_positions.insert(0, pos)
                 training_state.stats.closed_pnl += pos["pnl"]
                 training_state.stats.open_positions.remove(pos)
     
     if quantity != 0:
-        training_state.stats.open_positions.append({"type": action, "price": current_data["Close"], "close_price": None, "pnl": None, "quantity": quantity, "date": current_data["Date"]})
+        training_state.stats.open_positions.append({"type": action, "price": current_data["Close"], "close_price": None, "pnl": None, "quantity": quantity, "open_date": current_data["Date"], "close_date": None})
 
 
 def create_candlestick_figure(data, current_idx):
@@ -260,35 +264,32 @@ def create_candlestick_figure(data, current_idx):
 
 def create_pnl_graph(instrument):
     pnl_data = []
-    closed_pnl = 0
     closed_positions = training_state.stats.closed_positions[::-1]
 
-    for pos in closed_positions:
-        closed_pnl += pos["pnl"]
-        pnl_data.append(closed_pnl)
-
+    dates = []
     buy_and_hold_data = []
-    buy_and_hold_dates = []
-    initial_price = stock_data[instrument].iloc[training_state.current_date_idx - len(pnl_data)]["Close"]
-    print(training_state.current_date_idx)
-    print(stock_data[instrument].iloc[training_state.current_date_idx]["Close"])
+    initial_price = stock_data[instrument].iloc[100]["Close"]
 
     for i in range(100, training_state.current_date_idx + 1):
+        current_pnl = 0
+        for pos in closed_positions:
+            current_pnl += pos["pnl"] if pos["close_date"] <= stock_data[instrument].iloc[i]["Date"] else 0
         current_price = stock_data[instrument].iloc[i]["Close"]
-        buy_and_hold_dates.append(stock_data[instrument].iloc[i]["Date"])
+        dates.append(stock_data[instrument].iloc[i]["Date"])
         buy_and_hold_data.append(current_price - initial_price)
-
+        pnl_data.append(current_pnl)
+        
     figure = go.Figure(
         data=[
             go.Scatter(
-                x=[pos["date"] for pos in closed_positions] + [stock_data[instrument].iloc[training_state.current_date_idx]["Date"]],
+                x=dates,
                 y=pnl_data,
                 mode="lines+markers",
                 marker=dict(color="blue"),
                 name="PnL"
             ),
             go.Scatter(
-                x=buy_and_hold_dates,
+                x=dates,
                 y=buy_and_hold_data,
                 mode="lines+markers",
                 marker=dict(color="orange"),
@@ -363,6 +364,7 @@ def calculate_stats(instrument):
         pnl_fig,
         f"Closed PnL: ${closed_pnl:.2f}",
         f"Open PnL: ${open_pnl:.2f}",
+        f"Open Quantity: {training_state.stats.open_quantity}",
         training_state.stats.closed_positions,
         [{
             "total_pnl": f"${total_pnl:.2f}",
