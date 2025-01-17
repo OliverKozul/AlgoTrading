@@ -7,10 +7,8 @@ import strategies.strategy_tester as st
 
 def fetch_data(symbol, startDate = None, endDate = None):
     try:
-        # Attempt to download data for the given symbol
         df = yf.download(symbol, start=startDate, end=endDate, period='5y', interval='1d', progress=False)
         
-        # Check if the dataframe is empty (if data could not be fetched)
         if df.empty:
             raise ValueError(f"No data found for symbol {symbol}")
         
@@ -21,9 +19,24 @@ def fetch_data(symbol, startDate = None, endDate = None):
         return df
 
     except Exception as e:
-        # Log the error and return None to signify the failure
         print(f"Error fetching data for symbol {symbol}: {e}")
         return None
+
+def fetch_data_multiple(symbols, startDate = None, endDate = None):
+    try:
+        dfs = yf.download(symbols, start=startDate, end=endDate, period='5y', interval='1d', progress=False)
+
+        if dfs.empty:
+            raise ValueError("No data found for given symbols")
+
+        dfs.drop(columns=['Adj Close', 'Volume'], inplace=True)
+        dfs.dropna(inplace=True)
+        return dfs
+
+    except Exception as e:
+        print(f"Error fetching data for symbols: {e}")
+        return None
+
 
 def load_symbols(category):
     if category == 'SP':
