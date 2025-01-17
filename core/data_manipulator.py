@@ -2,7 +2,7 @@ import yfinance as yf
 import pandas as pd
 import pandas_ta as ta
 import re
-import strategies.strategy_tester as st
+from strategies.strategy_tester import load_strategies_from_json
 
 
 def fetch_data(symbol, startDate = None, endDate = None):
@@ -30,7 +30,6 @@ def fetch_data_multiple(symbols, startDate = None, endDate = None):
             raise ValueError("No data found for given symbols")
 
         dfs.drop(columns=['Adj Close', 'Volume'], inplace=True)
-        dfs.dropna(inplace=True)
         return dfs
 
     except Exception as e:
@@ -77,8 +76,8 @@ def generate_simple_result(symbol, strategy, result):
 def create_signals(df, strategy):
     df['BUYSignal'] = 0
 
-    signal_functions = st.load_strategies_from_json('strategies\strategies.json')
-    signal_functions.update(st.load_strategies_from_json('strategies\community_strategies.json'))
+    signal_functions = load_strategies_from_json('strategies\strategies.json')
+    signal_functions.update(load_strategies_from_json('strategies\community_strategies.json'))
 
     for key in signal_functions:
         strategy_name_words = key.split('_')

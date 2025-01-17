@@ -1,9 +1,9 @@
 import core.data_manipulator as dm
 import core.logger as logger
 import strategies.strats as strats
-import json
 from backtesting import Backtest
 from multiprocessing import Pool, Manager, cpu_count
+import json
 
 
 def load_strategies_from_json(file_path):
@@ -18,28 +18,21 @@ def run_master_backtest(symbols, strategy, compare_strategies = False, find_best
         print("Too many symbols to plot results for.")
         config['plot_results'] = False
         
-    # Create a multiprocessing manager and shared dictionary for strategies
     with Manager() as manager:
-        # Shared dict that processes can safely update
         strategies = manager.dict(load_strategies_from_json('strategies\strategies.json'))
         community_strategies = manager.dict(load_strategies_from_json('strategies\community_strategies.json'))
         strategies.update(community_strategies)
-        dfs = dm.fetch_data_multiple(symbols)
-        data_by_symbol = {symbol: dfs.xs(symbol, level='Ticker', axis=1).reset_index() for symbol in symbols}
 
-        # Use Pool to parallelize the backtest process
         with Pool(min(len(symbols), cpu_count())) as pool:
-            # Run backtest in parallel and get the results
             if config['compare_strategies'] or compare_strategies:
-                results = pool.starmap(run_backtest_process, [(data_by_symbol[symbol], symbol, strategy, config['plot_results']) for symbol in symbols for strategy in strategies.keys()])
+                results = pool.starmap(run_backtest_process, [(symbol, strategy, config['plot_results']) for symbol in symbols for strategy in strategies.keys()])
             elif config['find_best'] or find_best:
-                results = pool.starmap(find_best_backtest, [(data_by_symbol[symbol], symbol, strategies, config['plot_results']) for symbol in symbols])
+                results = pool.starmap(find_best_backtest, [(symbol, strategies, config['plot_results']) for symbol in symbols])
             elif config['adaptive_strategy'] or adaptive_strategy:
-                results = pool.starmap(run_adaptive_backtest, [(data_by_symbol[symbol], symbol, strategies, config['plot_results']) for symbol in symbols])
+                results = pool.starmap(run_adaptive_backtest, [(symbol, strategies, config['plot_results']) for symbol in symbols])
             else:
-                results = pool.starmap(run_backtest_process, [(data_by_symbol[symbol], symbol, strategy, config['plot_results']) for symbol in symbols])
+                results = pool.starmap(run_backtest_process, [(symbol, strategy, config['plot_results']) for symbol in symbols])
 
-        # After all backtests are done, log the aggregated results
         results = [result for result in results if result is not None]
 
         if config['sort_results']:
@@ -55,19 +48,19 @@ def run_master_backtest(symbols, strategy, compare_strategies = False, find_best
 
         return results
 
-def run_backtest(df, symbol, strategy, plot = False, start_date = None, end_date = None, start_percent = 0, end_percent = 1):
-    # df = dm.fetch_data(symbol, start_date, end_date)
+def run_backtest(symbol, strategy, plot = False, start_date = None, end_date = None, start_percent = 0, end_percent = 1):
+    df = dm.fetch_data(symbol, start_date, end_date)
     
     if df is None:
         return None
     
     start_index = int(start_percent * len(df))
     end_index = int(end_percent * len(df))
-    df = df.iloc[start_index:end_index].copy()
+    df = df.iloc[start_index:end_index]
     size = 0.5
 
     dm.create_signals(df, strategy)
-    results = gather_backtest_results(df, strategy, size, plot)
+    results = gather_backtest_results(df, symbol, strategy, size, plot)
     
     if results is None:
         print(f"Backtest for {symbol} with strategy -{strategy}- failed or no trades were made.")
@@ -75,8 +68,8 @@ def run_backtest(df, symbol, strategy, plot = False, start_date = None, end_date
 
     return results
 
-def run_backtest_process(df, symbol, strategy, plot = False):
-    result = run_backtest(df, symbol, strategy, plot)
+def run_backtest_process(symbol, strategy, plot = False):
+    result = run_backtest(symbol, strategy, plot)
     
     if result is None:
         return None
@@ -85,7 +78,7 @@ def run_backtest_process(df, symbol, strategy, plot = False):
 
     return simplified_result
 
-def find_best_backtest(df, symbol, strategies, plot = False, start_percent = 0, end_percent = 1):
+def find_best_backtest(symbol, strategies, plot = False, start_percent = 0, end_percent = 1):
     best_strategy = None
     best_result = None
     best_sharpe = 0
@@ -111,7 +104,7 @@ def find_best_backtest(df, symbol, strategies, plot = False, start_percent = 0, 
 
     return simplified_result
 
-def run_adaptive_backtest(df, symbol, strategies, plot = False, start_percent = 0, end_percent = 0.5):
+def run_adaptive_backtest(symbol, strategies, plot = False, start_percent = 0, end_percent = 0.5):
     results = find_best_backtest(symbol, strategies, plot, start_percent=start_percent, end_percent=end_percent)
 
     if results is None:
@@ -124,12 +117,12 @@ def run_adaptive_backtest(df, symbol, strategies, plot = False, start_percent = 
 
     return simplified_result
 
-def gather_backtest_results(df, strategy, size, plot = False):
+def gather_backtest_results(df, symbol, strategy, size, plot = False):
     try:
         bt = Backtest(df, strats.load_strategy(strategy, df, size), cash=100000, margin=1/1, commission=0.0001)
 
     except Exception as e:
-        print(f"Error running backtest: {e}")
+        print(f"Error running backtest for {symbol}: {e}")
         return None
         
     results = bt.run()
