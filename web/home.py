@@ -7,6 +7,7 @@ import web.backtesting as backtesting
 import web.strategy_creator as strategy_creator
 import web.pnl_calculator as pnl_calculator
 import web.training as training
+import web.stock_screener as stock_screener
 from web.utils import apply_dark_theme
 
 
@@ -26,7 +27,8 @@ app.layout = html.Div([
         dcc.Tab(label='Backtest', value='backtest'),
         dcc.Tab(label='Strategy Creator', value='strategy_creator'),
         dcc.Tab(label="P&L Calculator", value='pnl_calculator'),
-        dcc.Tab(label="Training", value='training')
+        dcc.Tab(label="Training", value='training'),
+        dcc.Tab(label="Stock Screener", value='stock_screener'),
     ]),
     html.Div(id='tabs-content')
 ])
@@ -139,12 +141,15 @@ def render_tab_content(tab):
         return pnl_calculator.create_pnl_calculator_tab_layout()
     elif tab == 'training':
         return training.create_training_tab_layout()
+    elif tab == 'stock_screener':
+        return stock_screener.create_stock_screener_tab_layout()
 
 # Register callbacks
 backtesting.register_callbacks(app)
 strategy_creator.register_callbacks(app)
 pnl_calculator.register_callbacks(app)
 training.register_callbacks(app)
+stock_screener.register_callbacks(app)
 
 # Your existing callback for the backtest
 @app.callback(

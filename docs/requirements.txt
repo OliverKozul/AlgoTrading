@@ -7,3 +7,4 @@ pandas_ta==0.3.14b0
 plotly==5.24.1
 yfinance==0.2.44
 dash_extensions==1.0.18
+dash-bootstrap-components==1.7.1

@@ -5,6 +5,7 @@ import core.data_manipulator as dm
 import numpy as np
 import plotly.graph_objects as go
 
+
 symbols = dm.load_symbols('SP')
 
 def create_pnl_calculator_tab_layout():
