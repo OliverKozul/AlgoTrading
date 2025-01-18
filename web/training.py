@@ -8,6 +8,7 @@ import yfinance as yf
 import datetime
 import plotly.graph_objs as go
 
+
 stock_data = {symbol: None for symbol in load_symbols('SP')}
 
 class TradingStats:

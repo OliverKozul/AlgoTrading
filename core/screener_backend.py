@@ -6,12 +6,13 @@ class Stock:
         self.ticker = ticker
         self.date = date
         self.stock = yf.Ticker(ticker)
-        self.historical_prices = self.stock.history(start=date)
-        self.eps_ttms = self.stock.info['trailingEps']
-        self.ttm_change = round(self.stock.info['52WeekChange'], 2)
-        self.price = self.historical_prices['Close'].iloc[0]
-        self.next_year_change = self.calculate_change(365)
-        self.pe_ratio = round(self.price / self.eps_ttms, 2)
+        self.historical_prices = self.stock.history(start=date) if self.stock.history(start=date).shape[0] > 0 else 'N/A'
+        self.eps_ttm = self.stock.info['trailingEps'] if 'trailingEps' in self.stock.info else 'N/A'
+        self.ttm_change = round(self.stock.info['52WeekChange'], 2) if '52WeekChange' in self.stock.info else 'N/A'
+        self.has_complete_data = self.eps_ttm != 'N/A' and self.ttm_change != 'N/A' and type(self.historical_prices) != str
+        self.price = self.historical_prices['Close'].iloc[0] if self.has_complete_data else 'N/A'
+        self.next_year_change = self.calculate_change(365) if self.has_complete_data else 'N/A'
+        self.pe_ratio = round(self.price / self.eps_ttm, 2) if self.has_complete_data else 'N/A'
 
     def calculate_change(self, timedelta_days):
         # future_price = 0
@@ -32,11 +33,11 @@ class Portfolio:
 
     def filter(self, variable, threshold, operator):
         if operator == '>':
-            self.stocks = [stock for stock in self.stocks if getattr(stock, variable) > threshold]
+            self.stocks = [stock for stock in self.stocks if stock.has_complete_data and getattr(stock, variable) > threshold]
         elif operator == '<':
-            self.stocks = [stock for stock in self.stocks if getattr(stock, variable) < threshold]
+            self.stocks = [stock for stock in self.stocks if stock.has_complete_data and getattr(stock, variable) < threshold]
         elif operator == '==':
-            self.stocks = [stock for stock in self.stocks if getattr(stock, variable) == threshold]
+            self.stocks = [stock for stock in self.stocks if stock.has_complete_data and getattr(stock, variable) == threshold]
         else:
             print(f"Invalid operator: {operator}")
 

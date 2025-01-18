@@ -53,7 +53,15 @@ def create_backtesting_tab_layout():
 
         html.Button("Run Backtests", id="run-backtest-button", style={"backgroundColor": "#1E90FF", "color": "#FFFFFF", "marginTop": "10px", "fontSize": "16px", "padding": "10px 20px"}),
 
-        html.Div(id="backtest-results", style={"marginTop": "20px", "color": "#FFFFFF"})
+        html.Div(id="backtest-results", style={"marginTop": "20px", "color": "#FFFFFF"}),
+        dcc.Loading(
+            id="loading-spinner-backtesting",
+            type="circle",  # or "default", "cube"
+            children=[
+                html.Div(id="backtest-results", style={"marginTop": "20px", "color": "#FFFFFF"})
+            ],
+            style={"marginTop": "20px"}
+        )
     ], style={"backgroundColor": "#121212", "padding": "20px"})
 
 

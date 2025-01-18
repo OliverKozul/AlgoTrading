@@ -3,8 +3,12 @@ from dash import dcc, html, dash_table
 from dash.dependencies import Input, Output
 import dash_bootstrap_components as dbc
 from core.screener_backend import Portfolio
+from core.data_manipulator import load_symbols
 import datetime as dt
 
+
+symbols = load_symbols('SP')
+symbols.insert(0, "ALL")
 
 def create_stock_screener_tab_layout():
     return html.Div([
@@ -14,8 +18,8 @@ def create_stock_screener_tab_layout():
             html.Label("Select Tickers:", style={"color": "#FFFFFF"}),
             dcc.Dropdown(
                 id='tickers-dropdown',
-                options=[{'label': ticker, 'value': ticker} for ticker in ['AAPL', 'NVDA', 'TSLA', 'MSFT', 'AMD']],
-                value=['AAPL', 'NVDA'],
+                options=[{'label': symbol, 'value': symbol} for symbol in symbols],
+                value=['AMD'],
                 multi=True,
                 placeholder="Choose tickers...",
                 style={"backgroundColor": "#333333", "color": "#FFFFFF"}
@@ -82,13 +86,10 @@ def create_stock_screener_tab_layout():
                 style={"backgroundColor": "#333333", "color": "#FFFFFF"}
             ),
         ], style={"marginBottom": "20px"}),
-
-        html.Button("Run Screener", id="run-screener-button", style={"backgroundColor": "#1E90FF", "color": "#FFFFFF", "marginTop": "10px", "fontSize": "16px", "padding": "10px 20px"}),
-
         html.Div([
             html.H4("Filtered Results:", style={"color": "#FFFFFF", "marginTop": "20px"}),
             html.Div(id='screener-results', style={"maxHeight": "500px", "overflowY": "auto", "backgroundColor": "#222222", "color": "#FFFFFF", "padding": "10px"})
-        ])
+        ]),
     ], style={"backgroundColor": "#121212", "padding": "20px"})
 
 # Define callback for filtering stocks
@@ -105,6 +106,9 @@ def register_callbacks(app):
     def update_screener_results(tickers, start_date, timedelta_days, variable, threshold, operator):
         if not tickers or not start_date or timedelta_days is None:
             return html.P("Please select tickers, a start date, and specify days into the future.", style={'color': 'red'})
+
+        if "ALL" in tickers:
+            tickers = symbols[1:]
 
         portfolio = Portfolio(tickers, dt.datetime.fromisoformat(start_date))
         portfolio.filter(variable, threshold, operator)
@@ -132,8 +136,17 @@ def register_callbacks(app):
                 {'name': 'TTM Change', 'id': 'TTM Change'},
                 {'name': 'Future Price Change', 'id': 'Future Price Change'}
             ],
-            style_table={'overflowX': 'auto'},
-            style_cell={'textAlign': 'center'},
-            style_header={'fontWeight': 'bold', 'backgroundColor': '#f8f9fa'},
-            style_data={'backgroundColor': '#ffffff', 'color': '#333333'},
+            style_table={'overflowX': 'auto', 'backgroundColor': '#333333', 'color': '#FFFFFF'},
+            style_header={"backgroundColor": "#444444", "color": "#FFFFFF", "fontWeight": "bold"},
+            style_cell={
+                "textAlign": "center", 
+                "backgroundColor": "#222222", 
+                "color": "#FFFFFF", 
+                "padding": "5px"
+            },
+            style_data_conditional=[
+                {"if": {"row_index": "odd"}, "backgroundColor": "#2A2A2A"},
+            ],
+            sort_action="native",
+            page_size=25
         )
