@@ -2,6 +2,7 @@ import core.plotter as plotter
 import numpy as np
 import pandas as pd
 
+
 def log(backtest_results):
     if backtest_results['Return [%]'] > backtest_results['Buy & Hold Return [%]']:
         print(f"| W R %: {str(round(backtest_results['Return [%]'], 2)).ljust(7)}| "
@@ -66,3 +67,4 @@ def compare_results(strategies):
 
     most_selected_strategy = max(strategies, key=strategies.get)
     print(f"\nThe most selected strategy is {most_selected_strategy}, chosen {strategies[most_selected_strategy]} times.")
+    

@@ -1,6 +1,7 @@
 import yfinance as yf
 import datetime as dt
 
+
 class Stock:
     def __init__(self, ticker, date):
         self.ticker = ticker

@@ -13,12 +13,9 @@ from web.utils import apply_dark_theme
 
 app = Dash("Cool", suppress_callback_exceptions=True)
 
-# Load all S&P 500 symbols
 symbols = load_symbols('SP')
 strategies_dict = load_strategies_from_json('strategies\strategies.json')
 community_strategies_dict = load_strategies_from_json('strategies\community_strategies.json')
-
-# Get current year
 last_year = datetime.today().year - 1
 
 app.layout = html.Div([
@@ -37,7 +34,6 @@ def create_home_tab_layout():
     return html.Div([
         html.H3("Backtest Results", style={"textAlign": "center", "marginBottom": "20px", "color": "#FFFFFF"}),
 
-        # Ticker Selection
         html.Div([
             html.Label("Select Companies:", style={"color": "#FFFFFF"}),
             dcc.Dropdown(
@@ -45,7 +41,7 @@ def create_home_tab_layout():
                 options=[{'label': symbol, 'value': symbol} for symbol in symbols],
                 multi=True,
                 placeholder="Select companies",
-                value=['AMD'],  # Default selection
+                value=['AMD'],
                 style={"backgroundColor": "#333333", "color": "#FFFFFF"}
             ),
         ], style={"marginBottom": "20px"}),
@@ -59,8 +55,8 @@ def create_home_tab_layout():
                     {'label': snake_case_to_name(key), 'value': key}
                     for key in strategies_dict.keys()
                 ],
-                multi=True,  # Allow multiple selections
-                value=['Buy_And_Hold'],  # Default selection
+                multi=True,
+                value=['Buy_And_Hold'],
                 style={"backgroundColor": "#333333", "color": "#FFFFFF"}
             ),
         ], style={"marginBottom": "20px"}),
@@ -74,8 +70,8 @@ def create_home_tab_layout():
                     {'label': snake_case_to_name(key), 'value': key}
                     for key in community_strategies_dict.keys()
                 ],
-                multi=True,  # Allow multiple selections
-                value=[],  # No default selection
+                multi=True,
+                value=[],
                 style={"backgroundColor": "#333333", "color": "#FFFFFF"}
             ),
         ], style={"marginBottom": "20px"}),
@@ -151,7 +147,6 @@ pnl_calculator.register_callbacks(app)
 training.register_callbacks(app)
 stock_screener.register_callbacks(app)
 
-# Your existing callback for the backtest
 @app.callback(
     Output('equity-curve', 'figure'),
     Output('error-message', 'children'),
@@ -183,17 +178,14 @@ def update_equity_curve(n_clicks, selected_symbols, official_strategies, communi
                 linecolor="#888888",
             ),
         )
-        return figure, ""  # Empty figure and no error message
+        return figure, ""
 
     figures = []
     error_message = ""
-
-    # Combine selected official and community strategies
     selected_strategies = (official_strategies or []) + (community_strategies or [])
 
-    # Set the start and end dates
-    start_date = f"{start_year}-01-01"  # Start from January 1st of the selected start year
-    end_date = f"{end_year}-12-31"  # End on December 31st of the selected end year
+    start_date = f"{start_year}-01-01"
+    end_date = f"{end_year}-12-31"
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=[start_date, end_date], y=[100000, 100000], mode='lines', name=f'Baseline - $100 000'))
@@ -201,7 +193,7 @@ def update_equity_curve(n_clicks, selected_symbols, official_strategies, communi
     figures.append(fig)
 
     for symbol in selected_symbols:
-        for strategy in selected_strategies:  # Loop through selected strategies
+        for strategy in selected_strategies:
             result = run_backtest(symbol, strategy, False, start_date, end_date)
             if result is None:
                 error_message = f"No trades were made for {symbol} using {strategy}."
@@ -209,22 +201,19 @@ def update_equity_curve(n_clicks, selected_symbols, official_strategies, communi
             
             equity_curve = result['_equity_curve']
             
-            # Create a new trace for each strategy
             fig = go.Figure()
             apply_dark_theme(fig)
-            
-            # fig.add_trace(go.Scatter(x=[equity_curve.index[0], equity_curve.index[-1]], y=[100000, 100000], mode='lines', name=f'Baseline 100 000'))
             fig.add_trace(go.Scatter(x=equity_curve.index, y=equity_curve['Equity'], mode='lines', name=f'{strategy} - {symbol} - Sharpe: {result["Sharpe Ratio"]:.2f}'))
             figures.append(fig)
 
     if figures:
-        combined_fig = figures[0]  # Start with the first figure
+        combined_fig = figures[0]
         for fig in figures[1:]:
-            combined_fig.add_traces(fig.data)  # Combine traces from other figures
+            combined_fig.add_traces(fig.data)
 
         return combined_fig, error_message
 
-    return go.Figure(), error_message  # Return empty figure and error message if no tickers were processed
+    return go.Figure(), error_message
 
 
 if __name__ == '__main__':

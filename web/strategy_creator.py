@@ -147,12 +147,12 @@ def generate_strategy_code(strategy_name, indicators, lengths, logics):
     
 # {strategy_name}
 
-def create{strategy_name[0].upper()}{strategy_name[1:]}Signals(df):
-    add{strategy_name}Columns(df)
-    create{strategy_name}BuySignals(df)
-    remove{strategy_name}Columns(df)
+def create_{strategy_name.lower()}_signals(df):
+    add_{strategy_name.lower()}_columns(df)
+    create_{strategy_name.lower()}_buy_signals(df)
+    remove_{strategy_name.lower()}_columns(df)
 
-def add{strategy_name}Columns(df):
+def add_{strategy_name.lower()}_columns(df):
     df['atr'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
 """
     for indicator, length in zip(indicators, lengths):
@@ -162,7 +162,7 @@ def add{strategy_name}Columns(df):
             code += f"    df['{indicator}'] = ta.{indicator}(df['Close'], length={length})\n"
     code += "    df.dropna(inplace=True)\n"
     code += f"""
-def create{strategy_name}BuySignals(df):
+def create{strategy_name.lower()}BuySignals(df):
     required_columns = ['Open', 'High', 'Low', 'Close', 'Date']
     assert all(col in df.columns for col in required_columns), "DataFrame must contain 'Open', 'High', 'Low', 'Close', 'Date' columns."
 
@@ -172,7 +172,7 @@ def create{strategy_name}BuySignals(df):
         code += f"    df['BUYSignal'] = df['BUYSignal'] | buy_signal_condition_{indicator}\n"
     
     code += f"""
-def remove{strategy_name}Columns(df):"""
+def remove_{strategy_name.lower()}_columns(df):"""
     for indicator in indicators:
         code += f"""
     df.drop(columns=['{indicator}'], inplace=True)"""
@@ -181,7 +181,7 @@ def remove{strategy_name}Columns(df):"""
 
 def generate_class_code(strategy_name):
     code = f"""
-class {strategy_name}(BaseStrategy):
+class {strategy_name.lower()}(Base_Strategy):
     def init(self):
         super().init()
         self.atrCoef = 6

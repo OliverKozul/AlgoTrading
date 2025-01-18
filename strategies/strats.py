@@ -137,7 +137,6 @@ class ROC_Trend_Following_Bear(Trailing_Stop_Loss_Strategy):
 
     def next(self):
         super().next()
-        
 
 # ROC Mean Reversion strategy
 class ROC_Mean_Reversion(Base_Strategy):

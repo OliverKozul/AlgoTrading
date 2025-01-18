@@ -7,7 +7,7 @@ from strategies.strategy_tester import load_strategies_from_json
 
 def fetch_data(symbol, startDate = None, endDate = None):
     try:
-        df = yf.download(symbol, start=startDate, end=endDate, period='5y', interval='1d', progress=False)
+        df = yf.download(symbol, start=startDate, end=endDate, period='max', interval='1d', progress=False)
         
         if df.empty:
             raise ValueError(f"No data found for symbol {symbol}")
@@ -36,13 +36,12 @@ def fetch_data_multiple(symbols, startDate = None, endDate = None):
         print(f"Error fetching data for symbols: {e}")
         return None
 
-
 def load_symbols(category):
     if category == 'SP':
         return pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')[0]['Symbol'].tolist() + ['SPY']
     
     elif category == 'R2000':
-        return pd.read_csv('R2000.csv').iloc[:, 0].tolist()
+        return pd.read_csv('data/R2000.csv').iloc[:, 0].tolist()
 
     elif category == 'futures':
         return ['ES=F', 'YM=F', 'NQ=F', 'RTY=F', 'CL=F', 'GC=F', 'SI=F', 'HG=F', 'PL=F', 'PA=F', 'NG=F', 'ZB=F', 'ZT=F', 'ZN=F', 'ZS=F', 'ZW=F', 'ZC=F', 'ZL=F', 'ZM=F']
@@ -73,6 +72,12 @@ def generate_simple_result(symbol, strategy, result):
 
     return simplified_result
 
+def calculate_n_day_returns(df, n):
+    df.loc[df['BUYSignal'] == 1, '1_day_return'] = df['Close'].shift(-n-1).pct_change() * 100
+    average_return = df.loc[df['BUYSignal'] == 1, f'{n}_day_return'].mean()
+    print(f"Average {n}-day return: {average_return}")
+    df.drop(columns=[f'{n}_day_return'], inplace=True)
+
 def create_signals(df, strategy):
     df['BUYSignal'] = 0
 
@@ -87,7 +92,6 @@ def create_signals(df, strategy):
 
     signal_functions.get(strategy, lambda x: None)(df)
     df.set_index('Date', inplace=True)
-
 
 def create_buy_and_hold_signals(df):
     df['BUYSignal'] = 1

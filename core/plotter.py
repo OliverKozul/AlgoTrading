@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 
+
 def plot(equity):
     """
     Plots the equity curve and drawdown curve of a trading strategy.
@@ -21,3 +22,4 @@ def plot(equity):
     plt.legend()
     plt.grid(True)
     plt.show()
+    

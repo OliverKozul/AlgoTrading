@@ -10,7 +10,6 @@ symbols.insert(0, "ALL")
 strategies_dict = load_strategies_from_json('strategies\strategies.json')
 community_strategies_dict = load_strategies_from_json('strategies\community_strategies.json')
 
-
 def create_backtesting_tab_layout():
     return html.Div([
         html.H3("Run Backtesting", style={"textAlign": "center", "marginBottom": "20px", "color": "#FFFFFF"}),
@@ -63,7 +62,6 @@ def create_backtesting_tab_layout():
             style={"marginTop": "20px"}
         )
     ], style={"backgroundColor": "#121212", "padding": "20px"})
-
 
 def register_callbacks(app):
     @app.callback(

@@ -10,7 +10,6 @@ symbols = dm.load_symbols('SP')
 
 def create_pnl_calculator_tab_layout():
     return html.Div([
-        # Header
         html.H3("P&L Calculator", style={"textAlign": "center", "marginBottom": "20px", "color": "#FFFFFF"}),
 
         # Symbol Selection
@@ -100,15 +99,12 @@ def create_pnl_calculator_tab_layout():
         dcc.Store(id="positions-data", data=[])
     ], style={"backgroundColor": "#121212", "padding": "20px"})
 
-
 def register_callbacks(app):
-    # Callback for updating position input fields based on selected position type
     @app.callback(
         Output("position-inputs", "children"),
         Input("position-type", "value"),
     )
     def update_position_inputs(position_type):
-        # Default disabled states for inputs based on position type
         disabled_states = {
             "stock": {"buy-price": False, "strike-price": True, "premium": True, "position-quantity": False},
             "buy_call": {"buy-price": True, "strike-price": False, "premium": False, "position-quantity": False},
@@ -117,10 +113,8 @@ def register_callbacks(app):
             "sell_put": {"buy-price": True, "strike-price": False, "premium": False, "position-quantity": False},
         }
 
-        # Determine current disabled state or default to all disabled if no type is selected
         state = disabled_states.get(position_type, {"buy-price": True, "strike-price": True, "premium": True, "position-quantity": True})
 
-        # Render all input fields, graying out irrelevant ones
         return html.Div([
             html.Label("Buy Price:"),
             dcc.Input(
@@ -156,8 +150,6 @@ def register_callbacks(app):
             ),
         ])
 
-
-    # Unified callback for adding and removing positions
     @app.callback(
         Output("positions-data", "data"),
         Output("positions-list", "children"),
@@ -186,7 +178,6 @@ def register_callbacks(app):
             elif position_type != "stock" and (strike_price is None or premium is None):
                 raise PreventUpdate
 
-            # Add new position
             new_position = {
                 "type": position_type,
                 "buy_price": buy_price if position_type == "stock" else None,
@@ -201,7 +192,6 @@ def register_callbacks(app):
             if index_to_remove < len(positions):
                 positions.pop(index_to_remove)
 
-        # Render positions list
         positions_list = [
             html.Div([
                 f"Type: {p['type']}, ",
@@ -214,7 +204,6 @@ def register_callbacks(app):
         ]
         return positions, positions_list
 
-    # Callback for updating P&L graph
     @app.callback(
         Output("pnl-graph", "figure"),
         Input("positions-data", "data"),
@@ -226,7 +215,6 @@ def register_callbacks(app):
             apply_dark_theme(figure)
             return figure
 
-        # Calculate the price range dynamically
         min_price_in_positions = min(
             [pos["buy_price"] if pos["type"] == "stock" else pos["strike_price"] for pos in positions]
         )
@@ -234,11 +222,8 @@ def register_callbacks(app):
             [pos["buy_price"] if pos["type"] == "stock" else pos["strike_price"] for pos in positions]
         )
         price_range = np.linspace(0.9 * min_price_in_positions, 1.1 * max_price_in_positions, 500)
-
-        # Initialize total P&L
         total_pnl = np.zeros_like(price_range)
 
-        # Calculate P&L for each position
         for position in positions:
             if position["type"] == "stock":
                 total_pnl += (price_range - position["buy_price"]) * position["quantity"]
@@ -255,13 +240,11 @@ def register_callbacks(app):
                 elif position["type"] == "sell_put":
                     total_pnl += quantity * (premium - np.maximum(strike - price_range, 0))
 
-        # Split the total_pnl into positive and negative components
         positive_mask = total_pnl > 0
         negative_mask = total_pnl <= 0
 
         fig = go.Figure()
 
-        # Add positive P&L line (green)
         fig.add_trace(go.Scatter(
             x=price_range[positive_mask],
             y=total_pnl[positive_mask],
@@ -270,7 +253,6 @@ def register_callbacks(app):
             line=dict(color="green")
         ))
 
-        # Add negative P&L line (red)
         fig.add_trace(go.Scatter(
             x=price_range[negative_mask],
             y=total_pnl[negative_mask],
@@ -279,7 +261,6 @@ def register_callbacks(app):
             line=dict(color="red")
         ))
 
-        # Update layout
         fig.update_layout(
             title=f"P&L Graph for {symbol}",
             xaxis_title="Price",

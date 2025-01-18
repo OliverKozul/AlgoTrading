@@ -1,10 +1,9 @@
-from dash import Dash, dash_table, dcc, html, Input, Output, State, callback_context
+from dash import dash_table, dcc, html, Input, Output, State, callback_context
 from dash_extensions import Keyboard
 from core.data_manipulator import fetch_data, load_symbols
 from web.utils import apply_dark_theme
 import random
 import pandas as pd
-import yfinance as yf
 import datetime
 import plotly.graph_objs as go
 
@@ -26,8 +25,6 @@ class TrainingState:
         self.stats = TradingStats()
 
 training_state = TrainingState()
-
-# Layout for the training tab
 
 def create_training_tab_layout():
     return html.Div([
@@ -105,7 +102,6 @@ def create_training_tab_layout():
         ]),
     ], style={"backgroundColor": "#121212", "padding": "20px"})
 
-# Callbacks for the training tab
 def register_callbacks(app):
     @app.callback(
         [
@@ -213,7 +209,6 @@ def handle_buy_sell(instrument, button_id, key_pressed):
     if quantity != 0:
         training_state.stats.open_positions.append({"type": action, "price": current_data["Close"], "close_price": None, "pnl": None, "quantity": quantity, "open_date": current_data["Date"], "close_date": None})
 
-
 def create_candlestick_figure(data, current_idx):
     start_idx = max(0, current_idx - 99)
     plot_data = data.iloc[start_idx:current_idx + 1]
@@ -233,7 +228,6 @@ def create_candlestick_figure(data, current_idx):
         ]
     )
 
-    # Add average price line
     price_sum = 0
     quantity_sum = 0
     for pos in training_state.stats.open_positions:
@@ -308,7 +302,6 @@ def create_pnl_graph(instrument):
     apply_dark_theme(figure)
 
     return figure
-    
 
 def calculate_streaks():
     longest_winning_streak = 0

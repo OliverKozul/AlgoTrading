@@ -17,3 +17,4 @@ def apply_dark_theme(fig):
             linecolor="#888888",
         ),
     )
+    
