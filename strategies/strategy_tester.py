@@ -60,13 +60,13 @@ def run_backtest(symbol, strategy, plot = False, start_date = None, end_date = N
     size = 0.5
 
     dm.create_signals(df, strategy)
-    results = gather_backtest_results(df, symbol, strategy, size, plot)
+    result = gather_backtest_result(df, symbol, strategy, size, plot)
     
-    if results is None:
+    if result is None:
         print(f"Backtest for {symbol} with strategy -{strategy}- failed or no trades were made.")
         return None
 
-    return results
+    return result
 
 def run_backtest_process(symbol, strategy, plot = False):
     result = run_backtest(symbol, strategy, plot)
@@ -117,7 +117,7 @@ def run_adaptive_backtest(symbol, strategies, plot = False, start_percent = 0, e
 
     return simplified_result
 
-def gather_backtest_results(df, symbol, strategy, size, plot = False):
+def gather_backtest_result(df, symbol, strategy, size, plot = False):
     try:
         bt = Backtest(df, strats.load_strategy(strategy, df, size), cash=100000, margin=1/1, commission=0.0001)
 
@@ -125,12 +125,12 @@ def gather_backtest_results(df, symbol, strategy, size, plot = False):
         print(f"Error running backtest for {symbol}: {e}")
         return None
         
-    results = bt.run()
+    result = bt.run()
 
     if plot:
         bt.plot(resample=False)
 
-    if results['# Trades'] == 0:
+    if result['# Trades'] == 0:
         return None
     
-    return results
+    return result

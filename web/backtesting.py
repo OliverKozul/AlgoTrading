@@ -126,10 +126,10 @@ def process_results_to_table(results):
     # Add formatted columns
     df["Instrument"] = df["symbol"]
     df["Return"] = df["return"].apply(lambda x: f"{x:.2f} %")
-    df["Max. Drawdown"] = df["maxDrawdown"].apply(lambda x: f"{x:.2f} %")
+    df["Max. Drawdown"] = df["max_drawdown"].apply(lambda x: f"{x:.2f} %")
     df["Sharpe"] = df["sharpe"].apply(lambda x: f"{x:.2f}")
     df["# Trades"] = df["# trades"]
-    df["Avg Trade Duration"] = df["avgTradeDuration"].astype(str)
+    df["Avg Trade Duration"] = df["avg_trade_duration"].astype(str)
     df["Strategy"] = df["strategy"].apply(snake_case_to_name)
 
     # Select relevant columns in order

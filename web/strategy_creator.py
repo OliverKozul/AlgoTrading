@@ -167,8 +167,8 @@ def create{strategy_name}BuySignals(df):
 
 """
     for indicator, logic in zip(indicators, logics):
-        code += f"    buySignalCondition_{indicator} = (df['{indicator}'] {logic})\n"
-        code += f"    df['BUYSignal'] = df['BUYSignal'] | buySignalCondition_{indicator}\n"
+        code += f"    buy_signal_condition_{indicator} = (df['{indicator}'] {logic})\n"
+        code += f"    df['BUYSignal'] = df['BUYSignal'] | buy_signal_condition_{indicator}\n"
     
     code += f"""
 def remove{strategy_name}Columns(df):"""

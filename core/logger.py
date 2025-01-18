@@ -26,7 +26,7 @@ def log_simple(result):
     
     print(f"{str(result['symbol']).ljust(5)} | "
             f"Return: {str(round(result['return'], 2)).ljust(7)}% | "
-            f"Max. Drawdown: {str(round(-result['maxDrawdown'], 2)).ljust(5)}% | "
+            f"Max. Drawdown: {str(round(-result['max_drawdown'], 2)).ljust(5)}% | "
             f"Sharpe: {str(round(result['sharpe'], 2)).ljust(5)} | "
             f"Strategy: {result['strategy']}")
 
@@ -43,7 +43,6 @@ def log_aggregated_results(results):
     equity_curve['DrawdownPct'] = sum(result['equity_curve']['DrawdownPct'] for result in results) / len(results)
     equity_curve['Equity'] = sum(result['equity_curve']['Equity'] for result in results) / len(results)
 
-    # Kinda sus
     if equity_curve is None:
         print("No results to aggregate.")
         return
@@ -56,7 +55,7 @@ def log_aggregated_results(results):
     print(f"Maximum aggregated drawdown: {round(equity_curve['DrawdownPct'].max() * 100, 2)}%")
     print(f"Average Sharpe Ratio: {round(sharpe_sum / len(results), 2)}")
     print(f"Total trades: {trade_count}")
-    print(f"Average trade duration: {round(np.mean([result['avgTradeDuration'].days for result in results]), 2)} days")
+    print(f"Average trade duration: {round(np.mean([result['avg_trade_duration'].days for result in results]), 2)} days")
     print(f"Strategy was implemented on {len(results)} symbols.")
     plotter.plot(equity_curve['Equity'])
 

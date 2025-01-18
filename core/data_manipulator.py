@@ -62,11 +62,11 @@ def snake_case_to_name(snake_case_str):
 def generate_simple_result(symbol, strategy, result):
     simplified_result = {
         'symbol': symbol,
-        'maxDrawdown': result['Max. Drawdown [%]'],
+        'max_drawdown': result['Max. Drawdown [%]'],
         'return': result['Return [%]'],
         'sharpe': result['Sharpe Ratio'],
         '# trades': result['# Trades'],
-        'avgTradeDuration': result['Avg. Trade Duration'],
+        'avg_trade_duration': result['Avg. Trade Duration'],
         'equity_curve': result['_equity_curve'],
         'strategy': strategy
     }
@@ -167,10 +167,10 @@ def create_roc_trend_following_bull_buy_signals(df, rocThreshold = 30):
         "DataFrame must contain 'Open', 'High', 'Low', 'Close', 'Date', 'roc' columns."
     
     # Create the condition for buy signals
-    buySignalCondition = (df['roc'] > rocThreshold)
+    buy_signal_condition = (df['roc'] > rocThreshold)
 
     # Apply the condition to the 'BUYSignal' column
-    df.loc[buySignalCondition, 'BUYSignal'] = 1
+    df.loc[buy_signal_condition, 'BUYSignal'] = 1
 
 def remove_roc_trend_following_bull_columns(df):
     df.drop(columns=['roc'], inplace=True)
@@ -194,10 +194,10 @@ def create_roc_trend_following_bear_buy_signals(df, rocThreshold = -30):
         "DataFrame must contain 'Open', 'High', 'Low', 'Close', 'Date', 'roc' columns."
     
     # Create the condition for buy signals
-    buySignalCondition = (df['roc'] < rocThreshold)
+    buy_signal_condition = (df['roc'] < rocThreshold)
 
     # Apply the condition to the 'BUYSignal' column
-    df.loc[buySignalCondition, 'BUYSignal'] = 1
+    df.loc[buy_signal_condition, 'BUYSignal'] = 1
 
 def remove_roc_trend_following_bear_columns(df):
     df.drop(columns=['roc'], inplace=True)
@@ -221,10 +221,10 @@ def create_roc_mean_reversion_buy_signals(df, rocThreshold = -5):
         "DataFrame must contain 'Open', 'High', 'Low', 'Close', 'Date', 'roc' columns."
     
     # Create the condition for buy signals
-    buySignalCondition = (df['roc'] < rocThreshold)
+    buy_signal_condition = (df['roc'] < rocThreshold)
 
     # Apply the condition to the 'BUYSignal' column
-    df.loc[buySignalCondition, 'BUYSignal'] = 1
+    df.loc[buy_signal_condition, 'BUYSignal'] = 1
 
 def remove_roc_mean_reversion_columns(df):
     df.drop(columns=['roc'], inplace=True)
@@ -245,8 +245,8 @@ def create_buy_and_holder_buy_signals(df):
     required_columns = ['Open', 'High', 'Low', 'Close', 'Date']
     assert all(col in df.columns for col in required_columns), "DataFrame must contain 'Open', 'High', 'Low', 'Close', 'Date' columns."
 
-    buySignalCondition_ema = (df['ema'] > 0)
-    df['BUYSignal'] = df['BUYSignal'] | buySignalCondition_ema
+    buy_signal_condition_ema = (df['ema'] > 0)
+    df['BUYSignal'] = df['BUYSignal'] | buy_signal_condition_ema
 
 def remove_buy_and_holder_columns(df):
     df.drop(columns=['ema'], inplace=True)
@@ -269,9 +269,9 @@ def create_buy_after_red_day_buy_signals(df):
     required_columns = ['Open', 'High', 'Low', 'Close', 'Date', 'prev_close', 'prev_open', 'ema']
     assert all(col in df.columns for col in required_columns), "DataFrame must contain 'Open', 'High', 'Low', 'Close', 'Date', 'prev_close', 'prev_open', 'ema' columns."
 
-    buySignalCondition = (df['prev_close'] < df['prev_open']) & (df['Close'] > df['ema'])
+    buy_signal_condition = (df['prev_close'] < df['prev_open']) & (df['Close'] > df['ema'])
 
-    df.loc[buySignalCondition, 'BUYSignal'] = 1
+    df.loc[buy_signal_condition, 'BUYSignal'] = 1
     
 def remove_buy_after_red_day_columns(df):
     df.drop(columns=['prev_close', 'prev_open', 'ema'], inplace=True)
