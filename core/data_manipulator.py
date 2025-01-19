@@ -7,7 +7,7 @@ from strategies.strategy_tester import load_strategies_from_json
 
 def fetch_data(symbol, startDate = None, endDate = None):
     try:
-        df = yf.download(symbol, start=startDate, end=endDate, period='max', interval='1d', progress=False)
+        df = yf.download(symbol, start=startDate, end=endDate, period='5y', interval='1d', progress=False)
         
         if df.empty:
             raise ValueError(f"No data found for symbol {symbol}")
@@ -73,10 +73,11 @@ def generate_simple_result(symbol, strategy, result):
     return simplified_result
 
 def calculate_n_day_returns(df, n):
-    df.loc[df['BUYSignal'] == 1, '1_day_return'] = df['Close'].shift(-n-1).pct_change() * 100
+    df.loc[df['BUYSignal'] == 1, f'{n}_day_return'] = df['Close'].shift(-n-1).pct_change(fill_method=None) * 100
     average_return = df.loc[df['BUYSignal'] == 1, f'{n}_day_return'].mean()
-    print(f"Average {n}-day return: {average_return}")
     df.drop(columns=[f'{n}_day_return'], inplace=True)
+
+    return average_return
 
 def create_signals(df, strategy):
     df['BUYSignal'] = 0
@@ -273,9 +274,10 @@ def create_buy_after_red_day_buy_signals(df):
     required_columns = ['Open', 'High', 'Low', 'Close', 'Date', 'prev_close', 'prev_open', 'ema']
     assert all(col in df.columns for col in required_columns), "DataFrame must contain 'Open', 'High', 'Low', 'Close', 'Date', 'prev_close', 'prev_open', 'ema' columns."
 
-    buy_signal_condition = (df['prev_close'] < df['prev_open']) & (df['Close'] > df['ema'])
+    buy_signal_condition = (df['prev_close'] < df['prev_open'])
 
     df.loc[buy_signal_condition, 'BUYSignal'] = 1
     
 def remove_buy_after_red_day_columns(df):
     df.drop(columns=['prev_close', 'prev_open', 'ema'], inplace=True)
+    

@@ -45,15 +45,15 @@ class Base_Strategy(Strategy):
 
     def next(self):
         if len(self.trades) == 0 and self.BUYSignal > 0:
-            buySize = self.calculate_buy_size()
-            self.buy(size=buySize)
+            buy_size = self.calculate_buy_size()
+            self.buy(size=buy_size)
 
     def next_with_tpsl(self):
         if len(self.trades) == 0 and self.BUYSignal > 0:
-            buySize = self.calculate_buy_size()
+            buy_size = self.calculate_buy_size()
             tp = self.data.Close[-1] + self.tp_coef * self.atr[-1]
             sl = max(0.01, self.data.Close[-1] - self.sl_coef * self.atr[-1])
-            self.buy(size=buySize, tp=tp, sl=sl)
+            self.buy(size=buy_size, tp=tp, sl=sl)
 
     def close_next_green_day(self):
         if len(self.trades) > 0 and self.data.Close[-1] > self.data.Open[-1]:
@@ -61,8 +61,8 @@ class Base_Strategy(Strategy):
                 trade.close()
 
     def calculate_buy_size(self):
-        buySize = self.size * (self.data.Close[-1] / (30 * self.atr[-1]))
-        return max(0.01, min(buySize, 0.99))
+        buy_size = self.size * (self.data.Close[-1] / (50 * self.atr[-1]))
+        return max(0.01, min(buy_size, 0.99))
     
 class Trailing_Stop_Loss_Strategy(Base_Strategy):
     def init(self):
@@ -142,11 +142,10 @@ class ROC_Trend_Following_Bear(Trailing_Stop_Loss_Strategy):
 class ROC_Mean_Reversion(Base_Strategy):
     def init(self):
         super().init()
-        self.tp_coef = 1
-        self.sl_coef = 1
 
     def next(self):
-        super().next_with_tpsl()
+        super().close_next_green_day()
+        super().next()
 
 class Buy_And_Hold_2(Base_Strategy):
     def init(self):

@@ -61,6 +61,9 @@ def run_backtest(symbol, strategy, plot = False, start_date = None, end_date = N
 
     dm.create_signals(df, strategy)
     result = gather_backtest_result(df, symbol, strategy, size, plot)
+
+    for i in range(1, 10):
+        print(f"Achieved average returns of: {round(dm.calculate_n_day_returns(df, i), 4)}% over the course of {i} days. {symbol} with strategy -{strategy}-")
     
     if result is None:
         print(f"Backtest for {symbol} with strategy -{strategy}- failed or no trades were made.")
