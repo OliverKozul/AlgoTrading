@@ -53,14 +53,10 @@ def run_master_backtest(symbols, strategy, compare_strategies = False, find_best
         return results
 
 def run_backtest(stock_data, symbol, strategy, plot = False, start_date = None, end_date = None, start_percent = 0, end_percent = 1):
-    if stock_data is None or stock_data.get(symbol) is None:
-        stock_data[symbol] = dm.fetch_data(symbol, start_date, end_date)
-
-    df = stock_data[symbol].copy()
-    
-    if df is None:
+    if stock_data[symbol] is None:
         return None
     
+    df = stock_data[symbol].copy()
     start_index = int(start_percent * len(df))
     end_index = int(end_percent * len(df))
     df = df.iloc[start_index:end_index]

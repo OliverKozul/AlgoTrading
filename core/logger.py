@@ -1,4 +1,5 @@
-import core.plotter as plotter
+from core.plotter import plot
+from core.utils import calculate_sharpe_ratio
 import numpy as np
 import pandas as pd
 
@@ -28,7 +29,7 @@ def log_simple(result):
     print(f"{str(result['symbol']).ljust(5)} | "
             f"Return: {str(round(result['return'], 2)).ljust(7)}% | "
             f"Max. Drawdown: {str(round(-result['max_drawdown'], 2)).ljust(5)}% | "
-            f"Sharpe: {str(round(result['sharpe'], 2)).ljust(5)} | "
+            f"Sharpe Ratio: {str(round(result['sharpe'], 2)).ljust(5)} | "
             f"Strategy: {result['strategy']}")
 
 def log_aggregated_results(results):
@@ -48,17 +49,18 @@ def log_aggregated_results(results):
         print("No results to aggregate.")
         return
     
-    equity_curve.dropna(inplace=True)
+    combined_sharpe = calculate_sharpe_ratio(equity_curve)
     
     print()
     print(f"Final aggregated equity: ${round(equity_curve['Equity'].iloc[-1])}")
     print(f"Return: {round(100 * (equity_curve['Equity'].iloc[-1] - starting_balance) / starting_balance, 2)}%")
     print(f"Maximum aggregated drawdown: {round(equity_curve['DrawdownPct'].max() * 100, 2)}%")
     print(f"Average Sharpe Ratio: {round(sharpe_sum / len(results), 2)}")
+    print(f"Combined Sharpe Ratio: {round(combined_sharpe, 2)}")
     print(f"Total trades: {trade_count}")
     print(f"Average trade duration: {round(np.mean([result['avg_trade_duration'].days for result in results]), 2)} days")
     print(f"Strategy was implemented on {len(results)} symbols.")
-    plotter.plot(equity_curve['Equity'])
+    plot(equity_curve['Equity'])
 
 def compare_results(strategies):
     print()
@@ -67,4 +69,3 @@ def compare_results(strategies):
 
     most_selected_strategy = max(strategies, key=strategies.get)
     print(f"\nThe most selected strategy is {most_selected_strategy}, chosen {strategies[most_selected_strategy]} times.")
-    

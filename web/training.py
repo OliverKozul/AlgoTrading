@@ -325,7 +325,7 @@ def calculate_streaks():
     return longest_winning_streak, longest_losing_streak
 
 def calculate_sharpe_ratio():
-    returns = [pos["pnl"] for pos in training_state.stats.closed_positions]
+    returns = [pos["pnl"] / 100 for pos in training_state.stats.closed_positions]
 
     return 0 if len(returns) == 0 else (sum(returns) / len(returns)) / (pd.Series(returns).std() * (252 ** 0.5))
 
