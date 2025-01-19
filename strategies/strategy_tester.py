@@ -12,12 +12,11 @@ def load_strategies_from_json(file_path):
     with open(file_path, 'r') as file:
         return json.load(file)
 
-def run_master_backtest(symbols, strategy, compare_strategies = False, find_best = False, adaptive_strategy = False, plot_results = False, sort_results = False, sorting_criteria = 'Sharpe Ratio'):
+def run_master_backtest(symbols, strategy, compare_strategies = False, find_best = False, adaptive_strategy = False, optimize_portfolio = False, plot_results = False):
     with open('data\config.json', 'r') as file:
         config = json.load(file)
     
-    if config['plot_results'] and len(symbols) > 10:
-        print("Too many symbols to plot results for.")
+    if (config['plot_results'] and len(symbols) > 10) or not plot_results:
         config['plot_results'] = False
         
     with Manager() as manager:
@@ -28,7 +27,7 @@ def run_master_backtest(symbols, strategy, compare_strategies = False, find_best
         with Pool(min(len(symbols), cpu_count())) as pool:
             stock_data = manager.dict({symbol: dm.fetch_data(symbol) for symbol in symbols})
 
-            if config['compare_strategies'] or compare_strategies:
+            if config['compare_strategies'] or compare_strategies or config['optimize_portfolio'] or optimize_portfolio:
                 results = pool.starmap(run_backtest_process, [(stock_data, symbol, strategy, config['plot_results']) for symbol in symbols for strategy in strategies.keys()])
             elif config['find_best'] or find_best:
                 results = pool.starmap(find_best_backtest, [(stock_data, symbol, strategies, config['plot_results']) for symbol in symbols])
@@ -45,10 +44,14 @@ def run_master_backtest(symbols, strategy, compare_strategies = False, find_best
         for result in results:
             logger.log_simple(result)
 
-        if config['find_best']:
+        if config['find_best'] or find_best:
             logger.compare_results(strategies)
 
-        logger.log_aggregated_results(results)
+        if config['optimize_portfolio'] or optimize_portfolio:
+            logger.log_optimized_portfolio(results)
+            # print(results)
+        else:
+            logger.log_aggregated_results(results)
 
         return results
 

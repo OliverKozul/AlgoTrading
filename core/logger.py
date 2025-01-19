@@ -1,7 +1,8 @@
 from core.plotter import plot
-from core.utils import calculate_sharpe_ratio
+from core.utils import calculate_sharpe_ratio, calculate_optimal_portfolio
 import numpy as np
 import pandas as pd
+from pprint import pprint
 
 
 def log(backtest_results):
@@ -49,7 +50,7 @@ def log_aggregated_results(results):
         print("No results to aggregate.")
         return
     
-    combined_sharpe = calculate_sharpe_ratio(equity_curve)
+    combined_sharpe = calculate_sharpe_ratio(equity_curve['Equity'])
     
     print()
     print(f"Final aggregated equity: ${round(equity_curve['Equity'].iloc[-1])}")
@@ -62,10 +63,26 @@ def log_aggregated_results(results):
     print(f"Strategy was implemented on {len(results)} symbols.")
     plot(equity_curve['Equity'])
 
+def log_optimized_portfolio(results):
+    sharpe_threshold = 0.3
+    starting_balance = 100000
+    optimal_portfolio, optimal_weights, optimized_sharpe = calculate_optimal_portfolio(results, sharpe_threshold)
+    dfs = [result['equity_curve'] for result in results if result['sharpe'] >= sharpe_threshold]
+    n_assets = len(dfs)
+    equity_df_combined = sum(dfs[i]['Equity'] * optimal_weights[i] for i in range(n_assets)).dropna()
+    drawdown_df_combined = sum(dfs[i]['DrawdownPct'] * optimal_weights[i] for i in range(n_assets)).dropna()
+
+    pprint(optimal_portfolio)
+    print(f"Final aggregated equity: ${round(equity_df_combined.iloc[-1])}")
+    print(f"Return: {round(100 * (equity_df_combined.iloc[-1] - starting_balance) / starting_balance, 2)}%")
+    print(f"Maximum aggregated drawdown: {round(drawdown_df_combined.max() * 100, 2)}%")
+    print(f"Optimized Sharpe Ratio: {round(optimized_sharpe, 2)}")
+    plot(equity_df_combined)
+
 def compare_results(strategies):
     print()
     for strategy, count in strategies.items():
-                print(f"Strategy {strategy} was selected {count} times.")
+        print(f"Strategy {strategy} was selected {count} times.")
 
     most_selected_strategy = max(strategies, key=strategies.get)
     print(f"\nThe most selected strategy is {most_selected_strategy}, chosen {strategies[most_selected_strategy]} times.")
