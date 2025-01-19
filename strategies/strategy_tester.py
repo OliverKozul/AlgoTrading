@@ -6,6 +6,8 @@ from multiprocessing import Pool, Manager, cpu_count
 import json
 
 
+# stock_data = {}
+
 def load_strategies_from_json(file_path):
     with open(file_path, 'r') as file:
         return json.load(file)
@@ -24,14 +26,16 @@ def run_master_backtest(symbols, strategy, compare_strategies = False, find_best
         strategies.update(community_strategies)
 
         with Pool(min(len(symbols), cpu_count())) as pool:
+            stock_data = manager.dict({symbol: dm.fetch_data(symbol) for symbol in symbols})
+
             if config['compare_strategies'] or compare_strategies:
-                results = pool.starmap(run_backtest_process, [(symbol, strategy, config['plot_results']) for symbol in symbols for strategy in strategies.keys()])
+                results = pool.starmap(run_backtest_process, [(stock_data, symbol, strategy, config['plot_results']) for symbol in symbols for strategy in strategies.keys()])
             elif config['find_best'] or find_best:
-                results = pool.starmap(find_best_backtest, [(symbol, strategies, config['plot_results']) for symbol in symbols])
+                results = pool.starmap(find_best_backtest, [(stock_data, symbol, strategies, config['plot_results']) for symbol in symbols])
             elif config['adaptive_strategy'] or adaptive_strategy:
-                results = pool.starmap(run_adaptive_backtest, [(symbol, strategies, config['plot_results']) for symbol in symbols])
+                results = pool.starmap(run_adaptive_backtest, [(stock_data, symbol, strategies, config['plot_results']) for symbol in symbols])
             else:
-                results = pool.starmap(run_backtest_process, [(symbol, strategy, config['plot_results']) for symbol in symbols])
+                results = pool.starmap(run_backtest_process, [(stock_data, symbol, strategy, config['plot_results']) for symbol in symbols])
 
         results = [result for result in results if result is not None]
 
@@ -48,8 +52,11 @@ def run_master_backtest(symbols, strategy, compare_strategies = False, find_best
 
         return results
 
-def run_backtest(symbol, strategy, plot = False, start_date = None, end_date = None, start_percent = 0, end_percent = 1):
-    df = dm.fetch_data(symbol, start_date, end_date)
+def run_backtest(stock_data, symbol, strategy, plot = False, start_date = None, end_date = None, start_percent = 0, end_percent = 1):
+    if stock_data is None or stock_data.get(symbol) is None:
+        stock_data[symbol] = dm.fetch_data(symbol, start_date, end_date)
+
+    df = stock_data[symbol].copy()
     
     if df is None:
         return None
@@ -62,8 +69,8 @@ def run_backtest(symbol, strategy, plot = False, start_date = None, end_date = N
     dm.create_signals(df, strategy)
     result = gather_backtest_result(df, symbol, strategy, size, plot)
 
-    for i in range(1, 10):
-        print(f"Achieved average returns of: {round(dm.calculate_n_day_returns(df, i), 4)}% over the course of {i} days. {symbol} with strategy -{strategy}-")
+    # for i in range(1, 10):
+    #     print(f"Achieved average returns of: {round(dm.calculate_n_day_returns(df, i), 4)}% over the course of {i} days. {symbol} with strategy -{strategy}-")
     
     if result is None:
         print(f"Backtest for {symbol} with strategy -{strategy}- failed or no trades were made.")
@@ -71,8 +78,8 @@ def run_backtest(symbol, strategy, plot = False, start_date = None, end_date = N
 
     return result
 
-def run_backtest_process(symbol, strategy, plot = False):
-    result = run_backtest(symbol, strategy, plot)
+def run_backtest_process(stock_data, symbol, strategy, plot = False):
+    result = run_backtest(stock_data, symbol, strategy, plot)
     
     if result is None:
         return None
@@ -81,13 +88,13 @@ def run_backtest_process(symbol, strategy, plot = False):
 
     return simplified_result
 
-def find_best_backtest(symbol, strategies, plot = False, start_percent = 0, end_percent = 1):
+def find_best_backtest(stock_data, symbol, strategies, plot = False, start_percent = 0, end_percent = 1):
     best_strategy = None
     best_result = None
     best_sharpe = 0
 
     for strategy in strategies.keys():
-        result = run_backtest(symbol, strategy, plot, start_percent=start_percent, end_percent=end_percent)
+        result = run_backtest(stock_data, symbol, strategy, plot, start_percent=start_percent, end_percent=end_percent)
 
         if result is None:
             continue
@@ -107,15 +114,15 @@ def find_best_backtest(symbol, strategies, plot = False, start_percent = 0, end_
 
     return simplified_result
 
-def run_adaptive_backtest(symbol, strategies, plot = False, start_percent = 0, end_percent = 0.5):
-    results = find_best_backtest(symbol, strategies, plot, start_percent=start_percent, end_percent=end_percent)
+def run_adaptive_backtest(stock_data, symbol, strategies, plot = False, start_percent = 0, end_percent = 0.5):
+    results = find_best_backtest(stock_data, symbol, strategies, plot, start_percent=start_percent, end_percent=end_percent)
 
     if results is None:
         return None
     
     strategy = results['strategy']
     
-    result = run_backtest(symbol, strategy, plot, start_percent=end_percent, end_percent=1)
+    result = run_backtest(stock_data, symbol, strategy, plot, start_percent=end_percent, end_percent=1)
     simplified_result = dm.generate_simple_result(symbol, strategy, result)
 
     return simplified_result

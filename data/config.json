@@ -1,8 +1,8 @@
 {
     "find_best": false,
-    "compare_strategies": false,
+    "compare_strategies": true,
     "adaptive_strategy": false,
-    "plot_results": true,
+    "plot_results": false,
     "sort_results": true,
     "sorting_criteria": "sharpe"
   }

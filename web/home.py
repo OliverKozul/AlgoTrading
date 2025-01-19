@@ -194,7 +194,7 @@ def update_equity_curve(n_clicks, selected_symbols, official_strategies, communi
 
     for symbol in selected_symbols:
         for strategy in selected_strategies:
-            result = run_backtest(symbol, strategy, False, start_date, end_date)
+            result = run_backtest(None, symbol, strategy, False, start_date, end_date)
             if result is None:
                 error_message = f"No trades were made for {symbol} using {strategy}."
                 continue
