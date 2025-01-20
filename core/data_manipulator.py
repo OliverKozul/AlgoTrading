@@ -113,13 +113,15 @@ def create_signals(df, strategy):
         signal_functions[key] = globals().get(function_name)
 
     signal_functions.get(strategy, lambda x: None)(df)
+    df = df[int(-0.9 * len(df)):].copy()
     df.set_index('Date', inplace=True)
-    return df[-1000:] # !!! This is a temporary fix to avoid issues with the non-aligned data
+    df.dropna(inplace=True)
+
+    return df
 
 def create_buy_and_hold_signals(df):
     df['BUYSignal'] = 1
     df['atr'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
-    df.dropna(inplace=True)
 
 # Daily Range
 
@@ -131,7 +133,6 @@ def create_daily_range_signals(df):
 def add_daily_range_columns(df):
     df['atr'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
     df['current_percent'] = 100 * (df['Close'] - df['Low']) / (df['High'] - df['Low'])
-    df.dropna(inplace=True)
 
 def create_daily_range_buy_signals(df, low_percentage=10):
     # Ensure the DataFrame has necessary columns
@@ -158,7 +159,6 @@ def create_solo_rsi_signals(df):
 def add_solo_rsi_columns(df, rsi_period=2):
     df['rsi'] = ta.rsi(df['Close'], length=rsi_period)
     df['atr'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
-    df.dropna(inplace=True)
 
 def create_solo_rsi_buy_signals(df, rsi_threshold=10):
     # Ensure the DataFrame has necessary columns
@@ -185,7 +185,6 @@ def create_roc_trend_following_bull_signals(df):
 def add_roc_trend_following_bull_columns(df, rocPeriod = 60):
     df['roc'] = ta.roc(df['Close'], length=rocPeriod)
     df['atr'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
-    df.dropna(inplace=True)
 
 def create_roc_trend_following_bull_buy_signals(df, rocThreshold = 30):
     # Ensure the DataFrame has necessary columns
@@ -212,7 +211,6 @@ def create_roc_trend_following_bear_signals(df):
 def add_roc_trend_following_bear_columns(df, rocPeriod = 60):
     df['roc'] = ta.roc(df['Close'], length=rocPeriod)
     df['atr'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
-    df.dropna(inplace=True)
 
 def create_roc_trend_following_bear_buy_signals(df, rocThreshold = -30):
     # Ensure the DataFrame has necessary columns
@@ -239,7 +237,6 @@ def create_roc_mean_reversion_signals(df):
 def add_roc_mean_reversion_columns(df, rocPeriod = 14):
     df['roc'] = ta.roc(df['Close'], length=rocPeriod)
     df['atr'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
-    df.dropna(inplace=True)
 
 def create_roc_mean_reversion_buy_signals(df, rocThreshold = -5):
     # Ensure the DataFrame has necessary columns
@@ -265,8 +262,7 @@ def create_buy_and_holder_signals(df):
 
 def add_buy_and_holder_columns(df):
     df['atr'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
-    df['ema'] = ta.ema(df['Close'], length=1)
-    df.dropna(inplace=True)
+    df['ema'] = ta.ema(df['Close'], length=1) 
 
 def create_buy_and_holder_buy_signals(df):
     required_columns = ['Open', 'High', 'Low', 'Close', 'Date']
@@ -290,7 +286,6 @@ def add_buy_after_red_day_columns(df):
     df['prev_close'] = df['Close'].shift(1)
     df['prev_open'] = df['Open'].shift(1)
     df['ema'] = ta.ema(df['Close'], length=50)
-    df.dropna(inplace=True)
 
 def create_buy_after_red_day_buy_signals(df):
     required_columns = ['Open', 'High', 'Low', 'Close', 'Date', 'prev_close', 'prev_open', 'ema']

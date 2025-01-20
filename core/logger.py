@@ -19,7 +19,7 @@ def log_all_results(results, strategies, find_best, optimize_portfolio, adaptive
     if config['optimize_portfolio'] or optimize_portfolio:
         log_optimized_portfolio(results)
     elif config['adaptive_portfolio'] or adaptive_portfolio:
-        log_adaptive_portfolio(results, 4, 25)
+        log_adaptive_portfolio(results, 4, 10)
     else:
         log_aggregated_results(results)
 
@@ -115,6 +115,7 @@ def log_adaptive_portfolio(results, n_divisions = 4, strategy_limit = 25):
         end_index = (i + 1) * (len(dfs[0]['Equity']) // n_divisions)
 
         for j in range(n_dfs):
+            print(len(dfs[j]['Equity']))
             equity_df_combined[start_index:end_index] += dfs[j]['Equity'][start_index:end_index] * all_optimal_weights[i-1][j]
             drawdown_df_combined[start_index:end_index] += dfs[j]['DrawdownPct'][start_index:end_index] * all_optimal_weights[i-1][j]
 
@@ -130,8 +131,10 @@ def log_adaptive_portfolio(results, n_divisions = 4, strategy_limit = 25):
         print(f"NaN occurrences in asset equity: {equity_df_combined.isna().sum()}")
         print("Check for data alignment issues.")
 
+    
     equity_df_combined = equity_df_combined.loc[equity_df_combined != starting_balance].dropna()
     equity_df_combined += starting_balance - equity_df_combined.iloc[0]
+    print(equity_df_combined)
     drawdown_df_combined = drawdown_df_combined.loc[drawdown_df_combined != starting_balance].dropna()
     adaptive_sharpe = calculate_sharpe_ratio(equity_df_combined)
     max_drawdown_index = drawdown_df_combined.idxmax().strftime('%Y-%m-%d')
