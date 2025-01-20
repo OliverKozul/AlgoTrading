@@ -30,6 +30,7 @@ def fetch_data_multiple(symbols, startDate = None, endDate = None):
             raise ValueError("No data found for given symbols")
 
         dfs.drop(columns=['Adj Close', 'Volume'], inplace=True)
+
         return dfs
 
     except Exception as e:
@@ -39,13 +40,10 @@ def fetch_data_multiple(symbols, startDate = None, endDate = None):
 def load_symbols(category):
     if category == 'SP':
         return pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')[0]['Symbol'].tolist() + ['SPY']
-    
     elif category == 'R2000':
         return pd.read_csv('data/R2000.csv').iloc[:, 0].tolist()
-
     elif category == 'futures':
         return ['ES=F', 'YM=F', 'NQ=F', 'RTY=F', 'CL=F', 'GC=F', 'SI=F', 'HG=F', 'PL=F', 'PA=F', 'NG=F', 'ZB=F', 'ZT=F', 'ZN=F', 'ZS=F', 'ZW=F', 'ZC=F', 'ZL=F', 'ZM=F']
-    
     else:
         print("Invalid index specified.")
         return None
@@ -68,7 +66,6 @@ def clean_stock_data(stock_data, symbols):
 
     if any(len(data) != max_length for data in stock_data.values()):
         print(f"Data length mismatch. Removing all stocks that are not of length: {max_length}.")
-        
     else:
         print(f"All data lengths are equal length: {max_length}.")
 
@@ -76,6 +73,8 @@ def clean_stock_data(stock_data, symbols):
         if len(data) != max_length:
             stock_data.pop(symbol)
             symbols.remove(symbol)
+
+    print(f"Remaining symbol count after cleaning: {len(symbols)}")
 
     return stock_data
 
