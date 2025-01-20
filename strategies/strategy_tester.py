@@ -1,9 +1,9 @@
 import core.data_manipulator as dm
-import core.logger as logger
+import json
 import strategies.strats as strats
 from backtesting import Backtest
 from multiprocessing import Pool, Manager, cpu_count
-import json
+from core.logger import log_all_results
 
 
 def load_strategies_from_json(file_path):
@@ -24,7 +24,8 @@ def run_master_backtest(symbols, strategy, compare_strategies = False, find_best
 
         with Pool(min(len(symbols), cpu_count())) as pool:
             stock_data = manager.dict({symbol: dm.fetch_data(symbol) for symbol in symbols})
-
+            stock_data = dm.clean_stock_data(stock_data, symbols)
+                    
             if config['compare_strategies'] or compare_strategies or config['optimize_portfolio'] or optimize_portfolio or config['adaptive_portfolio'] or adaptive_portfolio:
                 results = pool.starmap(run_backtest_process, [(stock_data, symbol, strategy, config['plot_results']) for symbol in symbols for strategy in strategies.keys()])
             elif config['find_best'] or find_best:
@@ -39,18 +40,7 @@ def run_master_backtest(symbols, strategy, compare_strategies = False, find_best
     if config['sort_results']:
         results = sorted(results, key=lambda x: x[config['sorting_criteria']], reverse=True)
 
-    for result in results:
-        logger.log_simple(result)
-
-    if config['find_best'] or find_best:
-        logger.compare_results(strategies)
-
-    if config['optimize_portfolio'] or optimize_portfolio:
-        logger.log_optimized_portfolio(results)
-    elif config['adaptive_portfolio'] or adaptive_portfolio:
-        logger.log_adaptive_portfolio(results, 3, 20)
-    else:
-        logger.log_aggregated_results(results)
+    log_all_results(results, strategies, find_best, optimize_portfolio, adaptive_portfolio)
 
     return results
 

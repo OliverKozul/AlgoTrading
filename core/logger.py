@@ -1,9 +1,27 @@
 from core.plotter import plot, plot_divided
 from core.utils import calculate_sharpe_ratio, calculate_optimal_portfolio, calculate_adaptive_portfolio
+from pprint import pprint
 import numpy as np
 import pandas as pd
-from pprint import pprint
+import json
 
+
+def log_all_results(results, strategies, find_best, optimize_portfolio, adaptive_portfolio):
+    with open('data\config.json', 'r') as file:
+        config = json.load(file)
+
+    for result in results:
+        log_simple(result)
+
+    if config['find_best'] or find_best:
+        compare_results(strategies)
+
+    if config['optimize_portfolio'] or optimize_portfolio:
+        log_optimized_portfolio(results)
+    elif config['adaptive_portfolio'] or adaptive_portfolio:
+        log_adaptive_portfolio(results, 4, 25)
+    else:
+        log_aggregated_results(results)
 
 def log(backtest_results):
     if backtest_results['Return [%]'] > backtest_results['Buy & Hold Return [%]']:
@@ -95,13 +113,10 @@ def log_adaptive_portfolio(results, n_divisions = 4, strategy_limit = 25):
     for i in range(1, n_divisions):
         start_index = i * (len(dfs[0]['Equity']) // n_divisions)
         end_index = (i + 1) * (len(dfs[0]['Equity']) // n_divisions)
+
         for j in range(n_dfs):
             equity_df_combined[start_index:end_index] += dfs[j]['Equity'][start_index:end_index] * all_optimal_weights[i-1][j]
             drawdown_df_combined[start_index:end_index] += dfs[j]['DrawdownPct'][start_index:end_index] * all_optimal_weights[i-1][j]
-        
-        if equity_df_combined.isna().sum():
-            print(f"NaN occurrences in asset equity: {equity_df_combined.isna().sum()}")
-            print("Check for date alignment issues.")
 
         equity_df_combined[start_index:end_index] += equity_df_combined.iloc[start_index-1] - equity_df_combined.iloc[start_index]
         drawdown_df_combined[start_index:end_index] += drawdown_df_combined.iloc[start_index-1] - drawdown_df_combined.iloc[start_index]
@@ -110,6 +125,10 @@ def log_adaptive_portfolio(results, n_divisions = 4, strategy_limit = 25):
         print(f"Sharpe Ratio: {round(calculate_sharpe_ratio(equity_df_combined[start_index:end_index]), 4)}")
         print(f"Predicted Sharpe Ratio: {round(sharpe_ratios[i-1], 4)}")
         pprint(optimal_portfolios[i-1])
+
+    if equity_df_combined.isna().sum():
+        print(f"NaN occurrences in asset equity: {equity_df_combined.isna().sum()}")
+        print("Check for data alignment issues.")
 
     equity_df_combined = equity_df_combined.loc[equity_df_combined != starting_balance].dropna()
     equity_df_combined += starting_balance - equity_df_combined.iloc[0]

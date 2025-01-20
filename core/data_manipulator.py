@@ -58,6 +58,27 @@ def snake_case_to_name(snake_case_str):
     # Replace underscores with spaces and capitalize the first letter of the string
     return snake_case_str.replace('_', ' ')
 
+def clean_stock_data(stock_data, symbols):
+    for symbol, data in stock_data.items():
+        if data is None:
+            stock_data.pop(symbol)
+            symbols.remove(symbol)
+
+    max_length = max(len(data) for data in stock_data.values())
+
+    if any(len(data) != max_length for data in stock_data.values()):
+        print(f"Data length mismatch. Removing all stocks that are not of length: {max_length}.")
+        
+    else:
+        print(f"All data lengths are equal length: {max_length}.")
+
+    for symbol, data in stock_data.items():
+        if len(data) != max_length:
+            stock_data.pop(symbol)
+            symbols.remove(symbol)
+
+    return stock_data
+
 def generate_simple_result(symbol, strategy, result):
     simplified_result = {
         'symbol': symbol,
