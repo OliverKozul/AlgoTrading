@@ -34,18 +34,16 @@ def calculate_sharpe_ratio(equity_df, risk_free_rate=0.00):
 
     return sharpe_ratio
 
-def calculate_weighted_sharpe_ratio_negative(weights, equity_dfs, risk_free_rate=0.00):
+def calculate_weighted_sharpe_ratio_negative(weights, equity_dfs_pct_change, risk_free_rate=0.00):
     gmean_day_return = 0.0
-    day_returns = equity_dfs[0].resample('D').last().dropna().pct_change() * weights[0]
+    day_returns = equity_dfs_pct_change[0] * weights[0]
     annual_trading_days = np.nan
 
-    for i in range(1, len(equity_dfs)):
-        pct_change = equity_dfs[i].resample('D').last().dropna().pct_change()
-
-        if pct_change.empty:
+    for i in range(1, len(equity_dfs_pct_change)):
+        if equity_dfs_pct_change[i].empty:
             continue
         
-        day_returns += pct_change * weights[i]
+        day_returns += equity_dfs_pct_change[i] * weights[i]
 
     gmean_day_return = geometric_mean(day_returns)
     annual_trading_days = 252
@@ -59,7 +57,7 @@ def calculate_weighted_sharpe_ratio_negative(weights, equity_dfs, risk_free_rate
 def calculate_optimal_portfolio(results, sharpe_threshold=0.3):
     symbols = set()
     strategies = set()
-    equity_dfs = [result['equity_curve']['Equity'] for result in results if result['sharpe'] >= sharpe_threshold]
+    equity_dfs_pct_change = [result['equity_curve']['Equity'].resample('D').last().dropna().pct_change() for result in results if result['sharpe'] >= sharpe_threshold]
     
     for result in results:
         symbols.add(result['symbol'])
@@ -67,7 +65,7 @@ def calculate_optimal_portfolio(results, sharpe_threshold=0.3):
 
     symbols = list(symbols)
     strategies = list(strategies)
-    n_assets = len(equity_dfs)
+    n_assets = len(equity_dfs_pct_change)
 
     constraints = (
         {"type": "eq", "fun": lambda w: np.sum(w) - 1},
@@ -78,11 +76,10 @@ def calculate_optimal_portfolio(results, sharpe_threshold=0.3):
     optimization_result = minimize(
         calculate_weighted_sharpe_ratio_negative,
         initial_weights,
-        args=(equity_dfs,),
+        args=(equity_dfs_pct_change,),
         method="SLSQP",
         bounds=bounds,
         constraints=constraints,
-        tol=1e-4,
     )
 
     optimal_weights = optimization_result.x
@@ -93,6 +90,10 @@ def calculate_optimal_portfolio(results, sharpe_threshold=0.3):
             results[i]["weight"] = round(optimal_weights[i], 4)
             optimal_portfolio[results[i]["symbol"]].append({"strategy": results[i]["strategy"], "weight": results[i]["weight"]})
 
+    for symbol in symbols:
+        if not optimal_portfolio[symbol]:
+            optimal_portfolio.pop(symbol)
+            
     return optimal_portfolio, optimal_weights, -optimization_result.fun
 
 def calculate_for_division(i, results, sharpe_threshold, n_divisions):
@@ -107,10 +108,17 @@ def calculate_for_division(i, results, sharpe_threshold, n_divisions):
 
     return calculate_optimal_portfolio(divided_results, sharpe_threshold)
 
-def calculate_adaptive_portfolio(results, sharpe_threshold, n_divisions):
+def calculate_adaptive_portfolio(results, n_divisions, strategy_limit = 25):
     all_optimal_weights = []
     optimal_portfolios = []
     sharpe_ratios = []
+    sharpe_threshold = 0.3
+    count = sum(result['sharpe'] >= sharpe_threshold for result in results)
+    
+    while count > strategy_limit:
+        sharpe_threshold += 0.05
+        count = sum(result['sharpe'] >= sharpe_threshold for result in results)
+        print(f"Number of results used with Sharpe ratio >= {sharpe_threshold:.4f}: {count}")
 
     with Pool() as pool:
         results = pool.starmap(calculate_for_division, [(i, results, sharpe_threshold, n_divisions) for i in range(n_divisions)])
@@ -119,4 +127,4 @@ def calculate_adaptive_portfolio(results, sharpe_threshold, n_divisions):
             optimal_portfolios.append(optimal_portfolio)
             sharpe_ratios.append(sharpe_ratio)
 
-    return all_optimal_weights, optimal_portfolios, sharpe_ratios
+    return all_optimal_weights, optimal_portfolios, sharpe_ratios, sharpe_threshold

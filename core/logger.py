@@ -51,11 +51,12 @@ def log_aggregated_results(results):
         return
     
     combined_sharpe = calculate_sharpe_ratio(equity_curve['Equity'])
+    max_drawdown_index = equity_curve['DrawdownPct'].idxmax().strftime('%Y-%m-%d')
     
     print()
     print(f"Final aggregated equity: ${round(equity_curve['Equity'].iloc[-1])}")
     print(f"Return: {round(100 * (equity_curve['Equity'].iloc[-1] - starting_balance) / starting_balance, 2)}%")
-    print(f"Maximum aggregated drawdown: {round(equity_curve['DrawdownPct'].max() * 100, 2)}%")
+    print(f"Maximum aggregated drawdown: {round(equity_curve['DrawdownPct'].max() * 100, 2)}% at date: {max_drawdown_index}")
     print(f"Average Sharpe Ratio: {round(sharpe_sum / len(results), 2)}")
     print(f"Combined Sharpe Ratio: {round(combined_sharpe, 2)}")
     print(f"Total trades: {trade_count}")
@@ -71,24 +72,24 @@ def log_optimized_portfolio(results):
     n_assets = len(dfs)
     equity_df_combined = sum(dfs[i]['Equity'] * optimal_weights[i] for i in range(n_assets)).dropna()
     drawdown_df_combined = sum(dfs[i]['DrawdownPct'] * optimal_weights[i] for i in range(n_assets)).dropna()
+    max_drawdown_index = drawdown_df_combined.idxmax().strftime('%Y-%m-%d')
 
     pprint(optimal_portfolio)
     print(f"Final aggregated equity: ${round(equity_df_combined.iloc[-1])}")
     print(f"Return: {round(100 * (equity_df_combined.iloc[-1] - starting_balance) / starting_balance, 2)}%")
-    print(f"Maximum aggregated drawdown: {round(drawdown_df_combined.max() * 100, 2)}%")
+    print(f"Maximum aggregated drawdown: {round(drawdown_df_combined.max() * 100, 2)}% at date: {max_drawdown_index}")
     print(f"Optimized Sharpe Ratio: {round(optimized_sharpe, 2)}")
     plot(equity_df_combined)
 
-def log_adaptive_portfolio(results, n_divisions = 4):
-    sharpe_threshold = 0.5
+def log_adaptive_portfolio(results, n_divisions = 4, strategy_limit = 25):
     starting_balance = float(100000)
-    all_optimal_weights, optimal_portfolios, sharpe_ratios = calculate_adaptive_portfolio(results, sharpe_threshold, n_divisions)
+    all_optimal_weights, optimal_portfolios, sharpe_ratios, sharpe_threshold = calculate_adaptive_portfolio(results, n_divisions, strategy_limit)
     dfs = [result['equity_curve'] for result in results if result['sharpe'] >= sharpe_threshold]
     equity_df_combined = pd.Series(starting_balance, index=dfs[0]['Equity'].index, dtype=float)
     drawdown_df_combined = pd.Series(0, index=dfs[0]['DrawdownPct'].index, dtype=float)
     n_dfs = len(dfs)
 
-    print(f"--- Division 1/{n_divisions} ---")
+    print(f"--------- Division 0/{n_divisions - 1} ---------")
     print("Used for optimizing.")
 
     for i in range(1, n_divisions):
@@ -105,20 +106,22 @@ def log_adaptive_portfolio(results, n_divisions = 4):
         equity_df_combined[start_index:end_index] += equity_df_combined.iloc[start_index-1] - equity_df_combined.iloc[start_index]
         drawdown_df_combined[start_index:end_index] += drawdown_df_combined.iloc[start_index-1] - drawdown_df_combined.iloc[start_index]
 
-        print(f"--------- Division {i+1}/{n_divisions} ------------")
+        print(f"--------- Division {i}/{n_divisions - 1} ------------")
         print(f"Sharpe Ratio: {round(calculate_sharpe_ratio(equity_df_combined[start_index:end_index]), 4)}")
         print(f"Predicted Sharpe Ratio: {round(sharpe_ratios[i-1], 4)}")
         pprint(optimal_portfolios[i-1])
 
     equity_df_combined = equity_df_combined.loc[equity_df_combined != starting_balance].dropna()
+    equity_df_combined += starting_balance - equity_df_combined.iloc[0]
     drawdown_df_combined = drawdown_df_combined.loc[drawdown_df_combined != starting_balance].dropna()
     adaptive_sharpe = calculate_sharpe_ratio(equity_df_combined)
+    max_drawdown_index = drawdown_df_combined.idxmax().strftime('%Y-%m-%d')
 
     print(f"Final aggregated equity: ${round(equity_df_combined.iloc[-1])}")
     print(f"Return: {round(100 * (equity_df_combined.iloc[-1] - starting_balance) / starting_balance, 2)}%")
-    print(f"Maximum aggregated drawdown: {round(drawdown_df_combined.max() * 100, 2)}%")
+    print(f"Maximum aggregated drawdown: {round(drawdown_df_combined.max() * 100, 2)}% at date: {max_drawdown_index}")
     print(f"Adaptive Sharpe Ratio: {round(adaptive_sharpe, 2)}")
-    plot_divided(equity_df_combined, n_divisions)
+    plot_divided(equity_df_combined, n_divisions - 1)
 
 def compare_results(strategies):
     print()

@@ -93,7 +93,7 @@ def create_signals(df, strategy):
 
     signal_functions.get(strategy, lambda x: None)(df)
     df.set_index('Date', inplace=True)
-    return df[-1000:]
+    return df[-1000:] # !!! This is a temporary fix to avoid issues with the non-aligned data
 
 def create_buy_and_hold_signals(df):
     df['BUYSignal'] = 1

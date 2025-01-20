@@ -3,8 +3,9 @@ from strategies.strategy_tester import run_master_backtest
 
 
 if __name__ == "__main__":
-    # symbols = load_symbols('R2000')
-    symbols = ['SPY', 'TSLA', 'AAPL',]
+    # symbols = load_symbols('SP')
+    # symbols = ['SPY']
+    symbols = ['TSLA', 'AAPL', 'MSFT', 'AMZN', 'GOOGL', 'META', 'NFLX', 'NVDA', 'AMD']
     # symbols = load_symbols('futures')
     strategy = 'Buy_After_Red_Day'
     

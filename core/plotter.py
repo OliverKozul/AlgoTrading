@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 def plot(equity):
     plt.figure(figsize=(10, 6))
     
-    # Plot equity curve
     plt.plot(equity, label='Equity Curve', color='blue')
     
     plt.title('Trading Strategy')
@@ -17,10 +16,8 @@ def plot(equity):
 def plot_divided(equity, n_divisions):
     plt.figure(figsize=(10, 6))
     
-    # Plot equity curve
     plt.plot(equity.index, equity, label='Equity Curve', color='blue')
     
-    # Add vertical lines at specified divisions
     division_length = len(equity) // n_divisions
     for i in range(1, n_divisions):
         plt.axvline(x=equity.index[i * division_length], color='red', linestyle='--')
