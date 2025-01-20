@@ -2,7 +2,8 @@
     "find_best": false,
     "compare_strategies": false,
     "adaptive_strategy": false,
-    "optimize_portfolio": true,
+    "optimize_portfolio": false,
+    "adaptive_portfolio": true,
     "plot_results": false,
     "sort_results": true,
     "sorting_criteria": "sharpe"

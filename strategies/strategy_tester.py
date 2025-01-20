@@ -12,7 +12,7 @@ def load_strategies_from_json(file_path):
     with open(file_path, 'r') as file:
         return json.load(file)
 
-def run_master_backtest(symbols, strategy, compare_strategies = False, find_best = False, adaptive_strategy = False, optimize_portfolio = False, plot_results = False):
+def run_master_backtest(symbols, strategy, compare_strategies = False, find_best = False, adaptive_strategy = False, optimize_portfolio = False, adaptive_portfolio = False, plot_results = False):
     with open('data\config.json', 'r') as file:
         config = json.load(file)
     
@@ -27,7 +27,7 @@ def run_master_backtest(symbols, strategy, compare_strategies = False, find_best
         with Pool(min(len(symbols), cpu_count())) as pool:
             stock_data = manager.dict({symbol: dm.fetch_data(symbol) for symbol in symbols})
 
-            if config['compare_strategies'] or compare_strategies or config['optimize_portfolio'] or optimize_portfolio:
+            if config['compare_strategies'] or compare_strategies or config['optimize_portfolio'] or optimize_portfolio or config['adaptive_portfolio'] or adaptive_portfolio:
                 results = pool.starmap(run_backtest_process, [(stock_data, symbol, strategy, config['plot_results']) for symbol in symbols for strategy in strategies.keys()])
             elif config['find_best'] or find_best:
                 results = pool.starmap(find_best_backtest, [(stock_data, symbol, strategies, config['plot_results']) for symbol in symbols])
@@ -36,24 +36,25 @@ def run_master_backtest(symbols, strategy, compare_strategies = False, find_best
             else:
                 results = pool.starmap(run_backtest_process, [(stock_data, symbol, strategy, config['plot_results']) for symbol in symbols])
 
-        results = [result for result in results if result is not None]
+    results = [result for result in results if result is not None]
 
-        if config['sort_results']:
-            results = sorted(results, key=lambda x: x[config['sorting_criteria']], reverse=True)
+    if config['sort_results']:
+        results = sorted(results, key=lambda x: x[config['sorting_criteria']], reverse=True)
 
-        for result in results:
-            logger.log_simple(result)
+    for result in results:
+        logger.log_simple(result)
 
-        if config['find_best'] or find_best:
-            logger.compare_results(strategies)
+    if config['find_best'] or find_best:
+        logger.compare_results(strategies)
 
-        if config['optimize_portfolio'] or optimize_portfolio:
-            logger.log_optimized_portfolio(results)
-            # print(results)
-        else:
-            logger.log_aggregated_results(results)
+    if config['optimize_portfolio'] or optimize_portfolio:
+        logger.log_optimized_portfolio(results)
+    elif config['adaptive_portfolio'] or adaptive_portfolio:
+        logger.log_adaptive_portfolio(results)
+    else:
+        logger.log_aggregated_results(results)
 
-        return results
+    return results
 
 def run_backtest(stock_data, symbol, strategy, plot = False, start_date = None, end_date = None, start_percent = 0, end_percent = 1):
     if stock_data[symbol] is None:
@@ -65,12 +66,9 @@ def run_backtest(stock_data, symbol, strategy, plot = False, start_date = None, 
     df = df.iloc[start_index:end_index]
     size = 0.5
 
-    dm.create_signals(df, strategy)
+    df = dm.create_signals(df, strategy)
     result = gather_backtest_result(df, symbol, strategy, size, plot)
 
-    # for i in range(1, 10):
-    #     print(f"Achieved average returns of: {round(dm.calculate_n_day_returns(df, i), 4)}% over the course of {i} days. {symbol} with strategy -{strategy}-")
-    
     if result is None:
         print(f"Backtest for {symbol} with strategy -{strategy}- failed or no trades were made.")
         return None
@@ -125,6 +123,7 @@ def run_adaptive_backtest(stock_data, symbol, strategies, plot = False, start_pe
     simplified_result = dm.generate_simple_result(symbol, strategy, result)
 
     return simplified_result
+
 
 def gather_backtest_result(df, symbol, strategy, size, plot = False):
     try:

@@ -1,6 +1,7 @@
 import time
 import numpy as np
 from scipy.optimize import minimize
+from multiprocessing import Pool
 
 
 def timeit(func):
@@ -93,3 +94,29 @@ def calculate_optimal_portfolio(results, sharpe_threshold=0.3):
             optimal_portfolio[results[i]["symbol"]].append({"strategy": results[i]["strategy"], "weight": results[i]["weight"]})
 
     return optimal_portfolio, optimal_weights, -optimization_result.fun
+
+def calculate_for_division(i, results, sharpe_threshold, n_divisions):
+    divided_results = []
+    for result in results:
+        start_index = i * (len(result['equity_curve']) // n_divisions)
+        end_index = (i + 1) * (len(result['equity_curve']) // n_divisions)
+        divided_equity_curve = result['equity_curve'][start_index:end_index]
+        divided_result = result.copy()
+        divided_result['equity_curve'] = divided_equity_curve
+        divided_results.append(divided_result)
+
+    return calculate_optimal_portfolio(divided_results, sharpe_threshold)
+
+def calculate_adaptive_portfolio(results, sharpe_threshold, n_divisions):
+    all_optimal_weights = []
+    optimal_portfolios = []
+    sharpe_ratios = []
+
+    with Pool() as pool:
+        results = pool.starmap(calculate_for_division, [(i, results, sharpe_threshold, n_divisions) for i in range(n_divisions)])
+        for optimal_portfolio, optimal_weights, sharpe_ratio in results:
+            all_optimal_weights.append(optimal_weights)
+            optimal_portfolios.append(optimal_portfolio)
+            sharpe_ratios.append(sharpe_ratio)
+
+    return all_optimal_weights, optimal_portfolios, sharpe_ratios
