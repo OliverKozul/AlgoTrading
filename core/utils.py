@@ -112,13 +112,14 @@ def calculate_adaptive_portfolio(results, n_divisions, strategy_limit = 25):
     all_optimal_weights = []
     optimal_portfolios = []
     sharpe_ratios = []
-    sharpe_threshold = 0.3
+    sharpe_threshold = 0.0
     count = sum(result['sharpe'] >= sharpe_threshold for result in results)
-    
+
     while count > strategy_limit:
         sharpe_threshold += 0.05
         count = sum(result['sharpe'] >= sharpe_threshold for result in results)
-        print(f"Number of results used with Sharpe ratio >= {sharpe_threshold:.4f}: {count}")
+
+    print(f"Number of results used with Sharpe ratio >= {sharpe_threshold:.4f}: {count}")
 
     with Pool() as pool:
         results = pool.starmap(calculate_for_division, [(i, results, sharpe_threshold, n_divisions) for i in range(n_divisions)])

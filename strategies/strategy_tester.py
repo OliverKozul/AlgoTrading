@@ -48,7 +48,7 @@ def run_master_backtest(symbols, strategy, compare_strategies = False, find_best
     if config['optimize_portfolio'] or optimize_portfolio:
         logger.log_optimized_portfolio(results)
     elif config['adaptive_portfolio'] or adaptive_portfolio:
-        logger.log_adaptive_portfolio(results, 3, 10)
+        logger.log_adaptive_portfolio(results, 3, 20)
     else:
         logger.log_aggregated_results(results)
 
