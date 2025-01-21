@@ -19,7 +19,7 @@ def log_all_results(results, strategies, find_best, optimize_portfolio, adaptive
     if config['optimize_portfolio'] or optimize_portfolio:
         log_optimized_portfolio(results)
     elif config['adaptive_portfolio'] or adaptive_portfolio:
-        log_adaptive_portfolio(results, 10, 10)
+        log_adaptive_portfolio(results, 5, 5)
     else:
         log_aggregated_results(results)
 

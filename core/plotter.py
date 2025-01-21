@@ -1,21 +1,25 @@
+import pandas as pd
 import matplotlib.pyplot as plt
 
 
-def plot(equity):
+def setup_plot(title: str, xlabel: str, ylabel: str):
     plt.figure(figsize=(10, 6))
-    
-    plt.plot(equity, label='Equity Curve', color='blue')
-    
-    plt.title('Trading Strategy')
-    plt.xlabel('Time')
-    plt.ylabel('Value')
-    plt.legend()
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
     plt.grid(True)
+
+def show_plot():
+    plt.legend()
     plt.show()
 
-def plot_divided(equity, n_divisions):
-    plt.figure(figsize=(10, 6))
-    
+def plot(equity: pd.Series):
+    setup_plot('Trading Strategy', 'Time', 'Value')
+    plt.plot(equity, label='Equity Curve', color='blue')
+    show_plot()
+
+def plot_divided(equity: pd.Series, n_divisions: int):
+    setup_plot('Trading Strategy', 'Time', 'Value')
     plt.plot(equity.index, equity, label='Equity Curve', color='blue')
     
     division_length = len(equity) // n_divisions
@@ -23,11 +27,5 @@ def plot_divided(equity, n_divisions):
         plt.axvline(x=equity.index[i * division_length], color='red', linestyle='--')
     
     plt.plot([equity.index[0], equity.index[-1]], [equity.iloc[0], equity.iloc[-1]], color='green', linestyle='--', label='Ideal Equity')
-    
-    plt.title('Trading Strategy')
-    plt.xlabel('Time')
-    plt.ylabel('Value')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
+    show_plot()
     
