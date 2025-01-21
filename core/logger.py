@@ -125,7 +125,7 @@ def log_adaptive_portfolio(results: List[Dict[str, Any]], n_divisions: int = 4, 
     adaptive_sharpe = calculate_sharpe_ratio(equity_df_combined)
     max_drawdown_index = drawdown_df_combined.idxmax().strftime('%Y-%m-%d')
 
-    print(f"Final aggregated equity: ${round(equity_df_combined.iloc[-1])}")
+    print(f"\nFinal aggregated equity: ${round(equity_df_combined.iloc[-1])}")
     print(f"Return: {round(100 * (equity_df_combined.iloc[-1] - starting_balance) / starting_balance, 2)}%")
     print(f"Maximum aggregated drawdown: {round(drawdown_df_combined.max() * 100, 2)}% at date: {max_drawdown_index}")
     print(f"Adaptive Sharpe Ratio: {round(adaptive_sharpe, 2)}")

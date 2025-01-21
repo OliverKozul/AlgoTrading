@@ -1,11 +1,13 @@
 import time
 import numpy as np
+import pandas as pd
 from scipy.optimize import minimize
 from multiprocessing import Pool
+from typing import Callable, List, Dict, Tuple, Any
 
 
-def timeit(func):
-    def wrapper(*args, **kwargs):
+def timeit(func: Callable) -> Callable:
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         start_time = time.time()
         result = func(*args, **kwargs)
         end_time = time.time()
@@ -14,13 +16,13 @@ def timeit(func):
         return result
     return wrapper
 
-def geometric_mean(returns):
+def geometric_mean(returns: pd.Series) -> float:
     returns = returns.fillna(0) + 1
     if np.any(returns <= 0):
         return 0
     return np.exp(np.log(returns).sum() / (len(returns) or np.nan)) - 1
-    
-def calculate_sharpe_ratio(equity_df, risk_free_rate=0.00):
+
+def calculate_sharpe_ratio(equity_df: pd.DataFrame, risk_free_rate: float = 0.00) -> float:
     gmean_day_return = 0.0
     day_returns = np.array(np.nan)
     annual_trading_days = np.nan
@@ -34,7 +36,7 @@ def calculate_sharpe_ratio(equity_df, risk_free_rate=0.00):
 
     return sharpe_ratio
 
-def calculate_weighted_sharpe_ratio_negative(weights, equity_dfs_pct_change, risk_free_rate=0.00):
+def calculate_weighted_sharpe_ratio_negative(weights: np.ndarray, equity_dfs_pct_change: List[pd.Series], risk_free_rate: float = 0.00) -> float:
     gmean_day_return = 0.0
     day_returns = equity_dfs_pct_change[0] * weights[0]
     annual_trading_days = np.nan
@@ -54,7 +56,7 @@ def calculate_weighted_sharpe_ratio_negative(weights, equity_dfs_pct_change, ris
 
     return -sharpe_ratio
 
-def calculate_optimal_portfolio(results, sharpe_threshold=0.3):
+def calculate_optimal_portfolio(results: List[Dict[str, Any]], sharpe_threshold: float = 0.3) -> Tuple[Dict[str, List[Dict[str, Any]]], np.ndarray, float]:
     symbols = set()
     strategies = set()
     equity_dfs_pct_change = [result['equity_curve']['Equity'].resample('D').last().dropna().pct_change() for result in results if result['sharpe'] >= sharpe_threshold]
@@ -97,7 +99,7 @@ def calculate_optimal_portfolio(results, sharpe_threshold=0.3):
             
     return optimal_portfolio, optimal_weights, -optimization_result.fun
 
-def calculate_for_division(i, results, sharpe_threshold, n_divisions):
+def calculate_for_division(i: int, results: List[Dict[str, Any]], sharpe_threshold: float, n_divisions: int) -> Tuple[Dict[str, List[Dict[str, Any]]], np.ndarray, float]:
     divided_results = []
     for result in results:
         start_index = i * (len(result['equity_curve']) // n_divisions)
@@ -109,7 +111,7 @@ def calculate_for_division(i, results, sharpe_threshold, n_divisions):
 
     return calculate_optimal_portfolio(divided_results, sharpe_threshold)
 
-def calculate_adaptive_portfolio(results, n_divisions, strategy_limit = 25):
+def calculate_adaptive_portfolio(results: List[Dict[str, Any]], n_divisions: int, strategy_limit: int = 25) -> Tuple[List[np.ndarray], List[Dict[str, List[Dict[str, Any]]]], List[float], float]:
     all_optimal_weights = []
     optimal_portfolios = []
     sharpe_ratios = []
