@@ -1,15 +1,15 @@
 from dash import dcc, html, dash_table
 from dash.dependencies import Input, Output
-import dash_bootstrap_components as dbc
 from core.screener_backend import Portfolio
 from core.data_manipulator import load_symbols
 import datetime as dt
+from typing import List, Union
 
 
 symbols = load_symbols('SP')
 symbols.insert(0, "ALL")
 
-def create_stock_screener_tab_layout():
+def create_stock_screener_tab_layout() -> html.Div:
     return html.Div([
         html.H3("Stock Screener", style={"textAlign": "center", "marginBottom": "20px", "color": "#FFFFFF"}),
 
@@ -92,7 +92,7 @@ def create_stock_screener_tab_layout():
     ], style={"backgroundColor": "#121212", "padding": "20px"})
 
 # Define callback for filtering stocks
-def register_callbacks(app):
+def register_callbacks(app) -> None:
     @app.callback(
         Output('screener-results', 'children'),
         Input('tickers-dropdown', 'value'),
@@ -102,7 +102,14 @@ def register_callbacks(app):
         Input('threshold-input', 'value'),
         Input('operator-dropdown', 'value'),
     )
-    def update_screener_results(tickers, start_date, timedelta_days, variable, threshold, operator):
+    def update_screener_results(
+        tickers: List[str], 
+        start_date: str, 
+        timedelta_days: int, 
+        variable: str, 
+        threshold: Union[int, float], 
+        operator: str
+    ) -> Union[html.P, dash_table.DataTable]:
         if not tickers or not start_date or timedelta_days is None:
             return html.P("Please select tickers, a start date, and specify days into the future.", style={'color': 'red'})
 
