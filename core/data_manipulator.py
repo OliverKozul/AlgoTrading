@@ -40,6 +40,8 @@ def fetch_data_multiple(symbols, startDate = None, endDate = None):
 def load_symbols(category):
     if category == 'SP':
         return pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')[0]['Symbol'].tolist() + ['SPY']
+    elif category == 'NQ':
+        return pd.read_html('https://en.wikipedia.org/wiki/Nasdaq-100')[4]['Symbol'].tolist()
     elif category == 'R2000':
         return pd.read_csv('data/R2000.csv').iloc[:, 0].tolist()
     elif category == 'futures':
@@ -111,189 +113,53 @@ def create_signals(df, strategy):
         function_name = f"create_{strategy_name}signals"
         signal_functions[key] = globals().get(function_name)
 
-    signal_functions.get(strategy, lambda x: None)(df)
+    signal_functions.get(strategy, lambda df: None)(df)
     df = df[int(-0.9 * len(df)):].copy()
     df.set_index('Date', inplace=True)
     df.dropna(inplace=True)
 
     return df
 
+def add_columns(columns):
+    def decorator(func):
+        def wrapper(df, *args, **kwargs):
+            for col, calc in columns.items():
+                df[col] = calc(df)
+            result = func(df, *args, **kwargs)
+            columns_to_drop = [col for col in columns.keys() if col != 'atr']
+            df.drop(columns=columns_to_drop, inplace=True)
+            return result
+        return wrapper
+    return decorator
+
+@add_columns({'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14)})
 def create_buy_and_hold_signals(df):
     df['BUYSignal'] = 1
-    df['atr'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
 
-# Daily Range
+@add_columns({'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14), 'current_percent': lambda df: 100 * (df['Close'] - df['Low']) / (df['High'] - df['Low'])})
+def create_daily_range_signals(df, low_percentage=10):
+    df.loc[df['current_percent'] <= low_percentage, 'BUYSignal'] = 1
 
-def create_daily_range_signals(df):
-    add_daily_range_columns(df)
-    create_daily_range_buy_signals(df)
-    remove_daily_range_columns(df)
+@add_columns({'rsi': lambda df: ta.rsi(df['Close'], length=2), 'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14)})
+def create_solo_rsi_signals(df, rsi_threshold=10):
+    df.loc[df['rsi'] < rsi_threshold, 'BUYSignal'] = 1
 
-def add_daily_range_columns(df):
-    df['atr'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
-    df['current_percent'] = 100 * (df['Close'] - df['Low']) / (df['High'] - df['Low'])
+@add_columns({'roc': lambda df: ta.roc(df['Close'], length=60), 'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14)})
+def create_roc_trend_following_bull_signals(df, rocThreshold=30):
+    df.loc[df['roc'] > rocThreshold, 'BUYSignal'] = 1
 
-def create_daily_range_buy_signals(df, low_percentage=10):
-    # Ensure the DataFrame has necessary columns
-    required_columns = ['Open', 'High', 'Low', 'Close', 'Date', 'current_percent']
-    assert all(col in df.columns for col in required_columns), \
-        "DataFrame must contain 'Open', 'High', 'Low', 'Close', 'Date', 'current_percent' columns."
-    
-    # Create the condition for buy signals
-    buy_signal_condition = (df['current_percent'] <= low_percentage)
+@add_columns({'roc': lambda df: ta.roc(df['Close'], length=60), 'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14)})
+def create_roc_trend_following_bear_signals(df, rocThreshold=-30):
+    df.loc[df['roc'] < rocThreshold, 'BUYSignal'] = 1
 
-    # Apply the condition to the 'BUYSignal' column
-    df.loc[buy_signal_condition, 'BUYSignal'] = 1
+@add_columns({'roc': lambda df: ta.roc(df['Close'], length=14), 'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14)})
+def create_roc_mean_reversion_signals(df, rocThreshold=-5):
+    df.loc[df['roc'] < rocThreshold, 'BUYSignal'] = 1
 
-def remove_daily_range_columns(df):
-    df.drop(columns=['current_percent'], inplace=True)
-
-# Solo RSI
-
-def create_solo_rsi_signals(df):
-    add_solo_rsi_columns(df)
-    create_solo_rsi_buy_signals(df)
-    remove_solo_rsi_columns(df)
-
-def add_solo_rsi_columns(df, rsi_period=2):
-    df['rsi'] = ta.rsi(df['Close'], length=rsi_period)
-    df['atr'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
-
-def create_solo_rsi_buy_signals(df, rsi_threshold=10):
-    # Ensure the DataFrame has necessary columns
-    required_columns = ['Open', 'High', 'Low', 'Close', 'Date', 'rsi']
-    assert all(col in df.columns for col in required_columns), \
-        "DataFrame must contain 'Open', 'High', 'Low', 'Close', 'Date', 'rsi' columns."
-
-    # Create the condition for buy signals
-    buy_signal_condition = (df['rsi'] < rsi_threshold)
-
-    # Apply the condition to the 'BUYSignal' column
-    df.loc[buy_signal_condition, 'BUYSignal'] = 1
-
-def remove_solo_rsi_columns(df):
-    df.drop(columns=['rsi'], inplace=True)
-
-# ROC trend_following Bull
-
-def create_roc_trend_following_bull_signals(df):
-    add_roc_trend_following_bull_columns(df)
-    create_roc_trend_following_bull_buy_signals(df)
-    remove_roc_trend_following_bull_columns(df)
-
-def add_roc_trend_following_bull_columns(df, rocPeriod = 60):
-    df['roc'] = ta.roc(df['Close'], length=rocPeriod)
-    df['atr'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
-
-def create_roc_trend_following_bull_buy_signals(df, rocThreshold = 30):
-    # Ensure the DataFrame has necessary columns
-    required_columns = ['Open', 'High', 'Low', 'Close', 'Date', 'roc']
-    assert all(col in df.columns for col in required_columns), \
-        "DataFrame must contain 'Open', 'High', 'Low', 'Close', 'Date', 'roc' columns."
-    
-    # Create the condition for buy signals
-    buy_signal_condition = (df['roc'] > rocThreshold)
-
-    # Apply the condition to the 'BUYSignal' column
-    df.loc[buy_signal_condition, 'BUYSignal'] = 1
-
-def remove_roc_trend_following_bull_columns(df):
-    df.drop(columns=['roc'], inplace=True)
-
-# ROC trend_following Bear
-
-def create_roc_trend_following_bear_signals(df):
-    add_roc_trend_following_bear_columns(df)
-    create_roc_trend_following_bear_buy_signals(df)
-    remove_roc_trend_following_bear_columns(df)
-
-def add_roc_trend_following_bear_columns(df, rocPeriod = 60):
-    df['roc'] = ta.roc(df['Close'], length=rocPeriod)
-    df['atr'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
-
-def create_roc_trend_following_bear_buy_signals(df, rocThreshold = -30):
-    # Ensure the DataFrame has necessary columns
-    required_columns = ['Open', 'High', 'Low', 'Close', 'Date', 'roc']
-    assert all(col in df.columns for col in required_columns), \
-        "DataFrame must contain 'Open', 'High', 'Low', 'Close', 'Date', 'roc' columns."
-    
-    # Create the condition for buy signals
-    buy_signal_condition = (df['roc'] < rocThreshold)
-
-    # Apply the condition to the 'BUYSignal' column
-    df.loc[buy_signal_condition, 'BUYSignal'] = 1
-
-def remove_roc_trend_following_bear_columns(df):
-    df.drop(columns=['roc'], inplace=True)
-
-# ROC Mean Reversion
-
-def create_roc_mean_reversion_signals(df):
-    add_roc_mean_reversion_columns(df)
-    create_roc_mean_reversion_buy_signals(df)
-    remove_roc_mean_reversion_columns(df)
-
-def add_roc_mean_reversion_columns(df, rocPeriod = 14):
-    df['roc'] = ta.roc(df['Close'], length=rocPeriod)
-    df['atr'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
-
-def create_roc_mean_reversion_buy_signals(df, rocThreshold = -5):
-    # Ensure the DataFrame has necessary columns
-    required_columns = ['Open', 'High', 'Low', 'Close', 'Date', 'roc']
-    assert all(col in df.columns for col in required_columns), \
-        "DataFrame must contain 'Open', 'High', 'Low', 'Close', 'Date', 'roc' columns."
-    
-    # Create the condition for buy signals
-    buy_signal_condition = (df['roc'] < rocThreshold)
-
-    # Apply the condition to the 'BUYSignal' column
-    df.loc[buy_signal_condition, 'BUYSignal'] = 1
-
-def remove_roc_mean_reversion_columns(df):
-    df.drop(columns=['roc'], inplace=True)
-    
-# buyAndHolder
-
+@add_columns({'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14), 'ema': lambda df: ta.ema(df['Close'], length=1)})
 def create_buy_and_holder_signals(df):
-    add_buy_and_holder_columns(df)
-    create_buy_and_holder_buy_signals(df)
-    remove_buy_and_holder_columns(df)
+    df.loc[df['ema'] > 0, 'BUYSignal'] = 1
 
-def add_buy_and_holder_columns(df):
-    df['atr'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
-    df['ema'] = ta.ema(df['Close'], length=1) 
-
-def create_buy_and_holder_buy_signals(df):
-    required_columns = ['Open', 'High', 'Low', 'Close', 'Date']
-    assert all(col in df.columns for col in required_columns), "DataFrame must contain 'Open', 'High', 'Low', 'Close', 'Date' columns."
-
-    buy_signal_condition_ema = (df['ema'] > 0)
-    df['BUYSignal'] = df['BUYSignal'] | buy_signal_condition_ema
-
-def remove_buy_and_holder_columns(df):
-    df.drop(columns=['ema'], inplace=True)
-
-# Buy After Red Day
-
+@add_columns({'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14), 'prev_close': lambda df: df['Close'].shift(1), 'prev_open': lambda df: df['Open'].shift(1), 'ema': lambda df: ta.ema(df['Close'], length=50)})
 def create_buy_after_red_day_signals(df):
-    add_buy_after_red_day_columns(df)
-    create_buy_after_red_day_buy_signals(df)
-    remove_buy_after_red_day_columns(df)
-
-def add_buy_after_red_day_columns(df):
-    df['atr'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
-    df['prev_close'] = df['Close'].shift(1)
-    df['prev_open'] = df['Open'].shift(1)
-    df['ema'] = ta.ema(df['Close'], length=50)
-
-def create_buy_after_red_day_buy_signals(df):
-    required_columns = ['Open', 'High', 'Low', 'Close', 'Date', 'prev_close', 'prev_open', 'ema']
-    assert all(col in df.columns for col in required_columns), "DataFrame must contain 'Open', 'High', 'Low', 'Close', 'Date', 'prev_close', 'prev_open', 'ema' columns."
-
-    buy_signal_condition = (df['prev_close'] < df['prev_open'])
-
-    df.loc[buy_signal_condition, 'BUYSignal'] = 1
-    
-def remove_buy_after_red_day_columns(df):
-    df.drop(columns=['prev_close', 'prev_open', 'ema'], inplace=True)
-    
+    df.loc[df['prev_close'] < df['prev_open'], 'BUYSignal'] = 1

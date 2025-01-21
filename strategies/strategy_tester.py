@@ -112,10 +112,9 @@ def run_adaptive_backtest(stock_data, symbol, strategies, plot = False, start_pe
 
     return simplified_result
 
-
 def gather_backtest_result(df, symbol, strategy, size, plot = False):
     try:
-        bt = Backtest(df, strats.load_strategy(strategy, df, size), cash=100000, margin=1/1, commission=0.0001)
+        bt = Backtest(df, strats.load_strategy(strategy, df, size), cash=100000, margin=1/1, commission=0.00025)
 
     except Exception as e:
         print(f"Error running backtest for {symbol}: {e}")

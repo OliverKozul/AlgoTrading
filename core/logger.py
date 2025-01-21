@@ -19,7 +19,7 @@ def log_all_results(results, strategies, find_best, optimize_portfolio, adaptive
     if config['optimize_portfolio'] or optimize_portfolio:
         log_optimized_portfolio(results)
     elif config['adaptive_portfolio'] or adaptive_portfolio:
-        log_adaptive_portfolio(results, 3, 20)
+        log_adaptive_portfolio(results, 10, 10)
     else:
         log_aggregated_results(results)
 
@@ -120,10 +120,12 @@ def log_adaptive_portfolio(results, n_divisions = 4, strategy_limit = 25):
 
         equity_df_combined[start_index:end_index] += equity_df_combined.iloc[start_index-1] - equity_df_combined.iloc[start_index]
         drawdown_df_combined[start_index:end_index] += drawdown_df_combined.iloc[start_index-1] - drawdown_df_combined.iloc[start_index]
+        current_sharpe_ratio = round(calculate_sharpe_ratio(equity_df_combined[start_index:end_index]), 4)
+        predicted_sharpe_ratio = round(sharpe_ratios[i-1], 4)
 
         print(f"--------- Division {i}/{n_divisions - 1} ------------")
-        print(f"Sharpe Ratio: {round(calculate_sharpe_ratio(equity_df_combined[start_index:end_index]), 4)}")
-        print(f"Predicted Sharpe Ratio: {round(sharpe_ratios[i-1], 4)}")
+        print(f"Sharpe Ratio: {current_sharpe_ratio}")
+        print(f"Predicted Sharpe Ratio: {predicted_sharpe_ratio}")
         pprint(optimal_portfolios[i-1])
 
     if equity_df_combined.isna().sum():

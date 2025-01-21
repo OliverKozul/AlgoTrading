@@ -69,6 +69,7 @@ def calculate_optimal_portfolio(results, sharpe_threshold=0.3):
 
     constraints = (
         {"type": "eq", "fun": lambda w: np.sum(w) - 1},
+        # {"type": "ineq", "fun": lambda w: w - 0.05},
     )
     bounds = [(0, 1) for _ in range(n_assets)]
     initial_weights = np.array([1 / n_assets] * n_assets)

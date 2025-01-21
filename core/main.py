@@ -4,7 +4,8 @@ import random
 
 
 if __name__ == "__main__":
-    symbols = load_symbols('SP')
+    # SP for S&P500, NQ for Nasdaq, R2000 for Russell 2000
+    symbols = load_symbols('NQ')
     # symbols = ['SPY']
     # symbols = ['TSLA', 'AAPL', 'MSFT', 'AMZN', 'GOOGL', 'META', 'NFLX', 'NVDA', 'AMD']
     # symbols = load_symbols('futures')
