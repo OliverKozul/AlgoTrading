@@ -1,9 +1,10 @@
 import yfinance as yf
 import datetime as dt
+from typing import List, Union
 
 
 class Stock:
-    def __init__(self, ticker, date):
+    def __init__(self, ticker: str, date: dt.datetime) -> None:
         self.ticker = ticker
         self.date = date
         self.stock = yf.Ticker(ticker)
@@ -15,24 +16,21 @@ class Stock:
         self.next_year_change = self.calculate_change(365) if self.has_complete_data else 'N/A'
         self.pe_ratio = round(self.price / self.eps_ttm, 2) if self.has_complete_data else 'N/A'
 
-    def calculate_change(self, timedelta_days):
-        # future_price = 0
-        # print(timedelta_days)
+    def calculate_change(self, timedelta_days: int) -> Union[float, str]:
         future_price = self.stock.history(start=self.date + dt.timedelta(days=timedelta_days))['Close'].iloc[0]
-        return round((future_price - self.price) / self.price, 2)    
+        return round((future_price - self.price) / self.price, 2)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.ticker} P/E Ratio: {self.pe_ratio}, TTM Change: {self.ttm_change}, Next Year Change: {self.next_year_change}'
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'{self.ticker} P/E Ratio: {self.pe_ratio}, TTM Change: {self.ttm_change}, Next Year Change: {self.next_year_change}'
-
 
 class Portfolio:
-    def __init__(self, tickers, date):
+    def __init__(self, tickers: List[str], date: dt.datetime) -> None:
         self.stocks = [Stock(ticker, date) for ticker in tickers]
 
-    def filter(self, variable, threshold, operator):
+    def filter(self, variable: str, threshold: Union[int, float], operator: str) -> None:
         if operator == '>':
             self.stocks = [stock for stock in self.stocks if stock.has_complete_data and getattr(stock, variable) > threshold]
         elif operator == '<':
@@ -42,18 +40,8 @@ class Portfolio:
         else:
             print(f"Invalid operator: {operator}")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return '\n'.join([str(stock) for stock in self.stocks])
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '\n'.join([str(stock) for stock in self.stocks])
-
-# tickers = ['AAPL', 'NVDA', 'TSLA', 'MSFT', 'AMD']
-# tickers.sort()
-
-# date = dt.datetime(2024, 1, 1)
-
-# portfolio = Portfolio(tickers, date)
-# portfolio.filter('pe_ratio', 10, '>')
-
-# print(portfolio)
