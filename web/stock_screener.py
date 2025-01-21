@@ -1,4 +1,4 @@
-from dash import dcc, html, dash_table
+from dash import Dash, dcc, html, dash_table
 from dash.dependencies import Input, Output
 from core.screener_backend import Portfolio
 from core.data_manipulator import load_symbols
@@ -92,7 +92,7 @@ def create_stock_screener_tab_layout() -> html.Div:
     ], style={"backgroundColor": "#121212", "padding": "20px"})
 
 # Define callback for filtering stocks
-def register_callbacks(app) -> None:
+def register_callbacks(app: Dash) -> None:
     @app.callback(
         Output('screener-results', 'children'),
         Input('tickers-dropdown', 'value'),

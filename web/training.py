@@ -6,27 +6,28 @@ import random
 import pandas as pd
 import datetime
 import plotly.graph_objs as go
+from typing import List, Tuple, Dict, Any
 
 
 stock_data = {symbol: None for symbol in load_symbols('SP')}
 
 class TradingStats:
     def __init__(self):
-        self.closed_positions = []
-        self.closed_pnl = 0.00
-        self.open_pnl = 0.00
-        self.open_positions = []
-        self.open_quantity = 0
+        self.closed_positions: List[Dict[str, Any]] = []
+        self.closed_pnl: float = 0.00
+        self.open_pnl: float = 0.00
+        self.open_positions: List[Dict[str, Any]] = []
+        self.open_quantity: int = 0
 
 class TrainingState:
     def __init__(self):
-        self.instrument = None
-        self.current_date_idx = 0
-        self.stats = TradingStats()
+        self.instrument: str = None
+        self.current_date_idx: int = 0
+        self.stats: TradingStats = TradingStats()
 
 training_state = TrainingState()
 
-def create_training_tab_layout():
+def create_training_tab_layout() -> html.Div:
     return html.Div([
         html.H3("Trading Skill Training", style={"textAlign": "center", "marginBottom": "20px", "color": "#FFFFFF"}),
 
@@ -102,7 +103,7 @@ def create_training_tab_layout():
         ]),
     ], style={"backgroundColor": "#121212", "padding": "20px"})
 
-def register_callbacks(app):
+def register_callbacks(app) -> None:
     @app.callback(
         [
             Output("training-session-controls", "style"),
@@ -129,7 +130,7 @@ def register_callbacks(app):
             State("training-date-info", "children")
         ]
     )
-    def handle_training(n_start, key_pressed, n_keydowns, n_buy, n_sell, n_next, selected_instruments, date_info):
+    def handle_training(n_start: int, key_pressed: Dict[str, Any], n_keydowns: int, n_buy: int, n_sell: int, n_next: int, selected_instruments: List[str], date_info: str) -> Tuple[Dict[str, str], str, str, go.Figure, go.Figure, str, str, str, List[Dict[str, Any]], List[Dict[str, Any]]]:
         key_pressed = key_pressed["key"].upper() if key_pressed else None
         ctx = callback_context
         if not ctx.triggered:
@@ -152,7 +153,7 @@ def register_callbacks(app):
 
         return calculate_stats(instrument)
 
-def handle_start_training(selected_instruments):
+def handle_start_training(selected_instruments: List[str]) -> Tuple[Dict[str, str], str, str, go.Figure, go.Figure, str, str, str, List[Dict[str, Any]], List[Dict[str, Any]]]:
     training_state.instrument = random.choice(selected_instruments)
     start_date = (datetime.datetime.now() - datetime.timedelta(days=random.randint(2*365, 10*365))).strftime("%Y-%m-%d")
     stock_data[training_state.instrument] = fetch_data(training_state.instrument, start_date)
@@ -180,7 +181,7 @@ def handle_start_training(selected_instruments):
         []
     )
 
-def handle_buy_sell(instrument, button_id, key_pressed):
+def handle_buy_sell(instrument: str, button_id: str, key_pressed: str) -> None:
     current_data = stock_data[instrument].iloc[training_state.current_date_idx]
     action = "Buy" if button_id == "buy-button" or key_pressed == "A" else "Sell"
     quantity = 1 if action == "Buy" else -1
@@ -209,7 +210,7 @@ def handle_buy_sell(instrument, button_id, key_pressed):
     if quantity != 0:
         training_state.stats.open_positions.append({"type": action, "price": current_data["Close"], "close_price": None, "pnl": None, "quantity": quantity, "open_date": current_data["Date"], "close_date": None})
 
-def create_candlestick_figure(data, current_idx):
+def create_candlestick_figure(data: pd.DataFrame, current_idx: int) -> go.Figure:
     start_idx = max(0, current_idx - 99)
     plot_data = data.iloc[start_idx:current_idx + 1]
 
@@ -257,7 +258,7 @@ def create_candlestick_figure(data, current_idx):
 
     return figure
 
-def create_pnl_graph(instrument):
+def create_pnl_graph(instrument: str) -> go.Figure:
     pnl_data = []
     closed_positions = training_state.stats.closed_positions[::-1]
 
@@ -303,7 +304,7 @@ def create_pnl_graph(instrument):
 
     return figure
 
-def calculate_streaks():
+def calculate_streaks() -> Tuple[int, int]:
     longest_winning_streak = 0
     longest_losing_streak = 0
     current_streak = 0
@@ -324,12 +325,12 @@ def calculate_streaks():
 
     return longest_winning_streak, longest_losing_streak
 
-def calculate_sharpe_ratio():
+def calculate_sharpe_ratio() -> float:
     returns = [pos["pnl"] / 100 for pos in training_state.stats.closed_positions]
 
     return 0 if len(returns) == 0 else (sum(returns) / len(returns)) / (pd.Series(returns).std() * (252 ** 0.5))
 
-def calculate_stats(instrument):
+def calculate_stats(instrument: str) -> Tuple[Dict[str, str], str, str, go.Figure, go.Figure, str, str, str, List[Dict[str, Any]], List[Dict[str, Any]]]:
     current_price = stock_data[instrument].iloc[training_state.current_date_idx]["Close"]
     current_date = stock_data[instrument].iloc[training_state.current_date_idx]["Date"]
     training_state.stats.open_pnl = sum([pos["quantity"] * (current_price - pos["price"]) for pos in training_state.stats.open_positions])

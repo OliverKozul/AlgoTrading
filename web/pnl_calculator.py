@@ -1,4 +1,4 @@
-from dash import dcc, html, Input, Output, State, ctx, ALL
+from dash import Dash, dcc, html, Input, Output, State, ctx, ALL
 from dash.exceptions import PreventUpdate
 from web.utils import apply_dark_theme
 import core.data_manipulator as dm
@@ -100,7 +100,7 @@ def create_pnl_calculator_tab_layout() -> html.Div:
         dcc.Store(id="positions-data", data=[])
     ], style={"backgroundColor": "#121212", "padding": "20px"})
 
-def register_callbacks(app) -> None:
+def register_callbacks(app: Dash) -> None:
     @app.callback(
         Output("position-inputs", "children"),
         Input("position-type", "value"),

@@ -1,9 +1,8 @@
-from dash import dcc, html, Input, Output, State
+from dash import Dash, dcc, html, Input, Output, State
 from dash.exceptions import PreventUpdate
 from dash.dependencies import ALL
 import json
 import strategies.strategy_tester as st
-from dash import Dash
 from typing import List
 
 
