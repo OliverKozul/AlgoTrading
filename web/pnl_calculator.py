@@ -1,14 +1,15 @@
-from dash import dcc, html, Input, Output, State, callback, ctx, ALL
+from dash import dcc, html, Input, Output, State, ctx, ALL
 from dash.exceptions import PreventUpdate
 from web.utils import apply_dark_theme
 import core.data_manipulator as dm
 import numpy as np
 import plotly.graph_objects as go
+from typing import List, Dict, Any, Union, Tuple
 
 
 symbols = dm.load_symbols('SP')
 
-def create_pnl_calculator_tab_layout():
+def create_pnl_calculator_tab_layout() -> html.Div:
     return html.Div([
         html.H3("P&L Calculator", style={"textAlign": "center", "marginBottom": "20px", "color": "#FFFFFF"}),
 
@@ -99,12 +100,12 @@ def create_pnl_calculator_tab_layout():
         dcc.Store(id="positions-data", data=[])
     ], style={"backgroundColor": "#121212", "padding": "20px"})
 
-def register_callbacks(app):
+def register_callbacks(app) -> None:
     @app.callback(
         Output("position-inputs", "children"),
         Input("position-type", "value"),
     )
-    def update_position_inputs(position_type):
+    def update_position_inputs(position_type: str) -> html.Div:
         disabled_states = {
             "stock": {"buy-price": False, "strike-price": True, "premium": True, "position-quantity": False},
             "buy_call": {"buy-price": True, "strike-price": False, "premium": False, "position-quantity": False},
@@ -163,7 +164,7 @@ def register_callbacks(app):
         State("position-quantity", "value"),
         prevent_initial_call=True
     )
-    def modify_positions(add_click, remove_clicks, positions, position_type, buy_price, strike_price, premium, quantity):
+    def modify_positions(add_click: int, remove_clicks: List[int], positions: List[Dict[str, Any]], position_type: str, buy_price: Union[float, None], strike_price: Union[float, None], premium: Union[float, None], quantity: Union[int, None]) -> Tuple[List[Dict[str, Any]], List[html.Div]]:
         triggered = ctx.triggered_id
 
         if not positions:
@@ -209,7 +210,7 @@ def register_callbacks(app):
         Input("positions-data", "data"),
         Input("symbol-dropdown", "value"),
     )
-    def update_pnl_graph(positions, symbol):
+    def update_pnl_graph(positions: List[Dict[str, Any]], symbol: str) -> go.Figure:
         if not positions:
             figure = go.Figure()
             apply_dark_theme(figure)
