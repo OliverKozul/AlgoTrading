@@ -83,13 +83,13 @@ def create_home_tab_layout():
                 dcc.Dropdown(
                     id='start-year-dropdown',
                     options=[{'label': str(year), 'value': str(year)} for year in range(last_year - 10, last_year + 1)],
-                    value=str(last_year - 2),  # Default to 2 years ago
+                    value=str(last_year - 2),
                     style={"width": "48%", "display": "inline-block", "backgroundColor": "#333333", "color": "#FFFFFF"}
                 ),
                 dcc.Dropdown(
                     id='end-year-dropdown',
                     options=[{'label': str(year), 'value': str(year)} for year in range(last_year - 10, last_year + 1)],
-                    value=str(last_year),  # Default to today
+                    value=str(last_year),
                     style={"width": "48%", "display": "inline-block", "backgroundColor": "#333333", "color": "#FFFFFF"}
                 ),
             ]),

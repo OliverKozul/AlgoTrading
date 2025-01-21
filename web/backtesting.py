@@ -3,6 +3,8 @@ from dash import dash_table
 from strategies.strategy_tester import run_master_backtest, load_strategies_from_json
 from core.data_manipulator import load_symbols, snake_case_to_name
 import pandas as pd
+from dash import Dash
+from typing import List, Dict, Any, Optional, Union
 
 
 symbols = load_symbols('SP')
@@ -10,7 +12,7 @@ symbols.insert(0, "ALL")
 strategies_dict = load_strategies_from_json('strategies\strategies.json')
 community_strategies_dict = load_strategies_from_json('strategies\community_strategies.json')
 
-def create_backtesting_tab_layout():
+def create_backtesting_tab_layout() -> html.Div:
     return html.Div([
         html.H3("Run Backtesting", style={"textAlign": "center", "marginBottom": "20px", "color": "#FFFFFF"}),
 
@@ -55,7 +57,7 @@ def create_backtesting_tab_layout():
         html.Div(id="backtest-results", style={"marginTop": "20px", "color": "#FFFFFF"}),
         dcc.Loading(
             id="loading-spinner-backtesting",
-            type="circle",  # or "default", "cube"
+            type="circle",
             children=[
                 html.Div(id="backtest-results", style={"marginTop": "20px", "color": "#FFFFFF"})
             ],
@@ -63,7 +65,7 @@ def create_backtesting_tab_layout():
         )
     ], style={"backgroundColor": "#121212", "padding": "20px"})
 
-def register_callbacks(app):
+def register_callbacks(app: Dash) -> None:
     @app.callback(
         Output("backtest-results", "children"),
         Input("run-backtest-button", "n_clicks"),
@@ -71,7 +73,7 @@ def register_callbacks(app):
         State("backtest-type-radio", "value"),
         State("backtest-strategy-dropdown", "value")
     )
-    def run_backtest_callback(n_clicks, instruments, backtest_type, selected_strategy):
+    def run_backtest_callback(n_clicks: Optional[int], instruments: Optional[List[str]], backtest_type: str, selected_strategy: Optional[str]) -> Union[str, dash_table.DataTable, None]:
         if not n_clicks:
             return None
 
@@ -126,7 +128,7 @@ def register_callbacks(app):
             page_size=25
         )
 
-def process_results_to_table(results):
+def process_results_to_table(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     df = pd.DataFrame(results)
 
     # Add formatted columns

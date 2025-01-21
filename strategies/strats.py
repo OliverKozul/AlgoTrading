@@ -79,23 +79,20 @@ class Trailing_Stop_Loss_Strategy(Base_Strategy):
         if len(self.trades) > 0:
             trade = self.trades[0]
             
-            if trade.is_long:  # Long position trailing stop
+            if trade.is_long:
                 if self.data.Close[-1] > self.max_price:
                     self.max_price = self.data.Close[-1]
                     self.stop_loss = self.data.Close[-1] - (self.atr[-1] * self.atr_coef)
 
-            elif trade.is_short:  # Short position trailing stop
+            elif trade.is_short:
                 if self.data.Close[-1] < self.min_price:
                     self.min_price = self.data.Close[-1]
                     self.stop_loss = self.data.Close[-1] + (self.atr[-1] * self.atr_coef)
 
     def close_trades_if_needed(self) -> None:
         for trade in self.trades:
-            # Close long trades if price drops below the stop loss
             if trade.is_long and self.data.Close[-1] < self.stop_loss:
                 trade.close()
-
-            # Close short trades if price rises above the stop loss
             elif trade.is_short and self.data.Close[-1] > self.stop_loss:
                 trade.close()
 
