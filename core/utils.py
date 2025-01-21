@@ -22,7 +22,7 @@ def geometric_mean(returns: pd.Series) -> float:
         return 0
     return np.exp(np.log(returns).sum() / (len(returns) or np.nan)) - 1
 
-def calculate_sharpe_ratio(equity_df: pd.DataFrame, risk_free_rate: float = 0.00) -> float:
+def calculate_sharpe_ratio(equity_df: pd.DataFrame, risk_free_rate: float = 0.03) -> float:
     gmean_day_return = 0.0
     day_returns = np.array(np.nan)
     annual_trading_days = np.nan
@@ -32,11 +32,11 @@ def calculate_sharpe_ratio(equity_df: pd.DataFrame, risk_free_rate: float = 0.00
     annualized_return = (1 + gmean_day_return)**annual_trading_days - 1
     annualized_return = annualized_return * 100
     annualized_volatility = np.sqrt((day_returns.var(ddof=int(bool(day_returns.shape))) + (1 + gmean_day_return)**2)**annual_trading_days - (1 + gmean_day_return)**(2*annual_trading_days)) * 100  # noqa: E501
-    sharpe_ratio = (annualized_return - risk_free_rate) / annualized_volatility
+    sharpe_ratio = (annualized_return - risk_free_rate * 100) / annualized_volatility
 
     return sharpe_ratio
 
-def calculate_weighted_sharpe_ratio_negative(weights: np.ndarray, equity_dfs_pct_change: List[pd.Series], risk_free_rate: float = 0.00) -> float:
+def calculate_weighted_sharpe_ratio_negative(weights: np.ndarray, equity_dfs_pct_change: List[pd.Series], risk_free_rate: float = 0.03) -> float:
     gmean_day_return = 0.0
     day_returns = equity_dfs_pct_change[0] * weights[0]
     annual_trading_days = np.nan
@@ -52,7 +52,7 @@ def calculate_weighted_sharpe_ratio_negative(weights: np.ndarray, equity_dfs_pct
     annualized_return = (1 + gmean_day_return)**annual_trading_days - 1
     annualized_return = annualized_return * 100
     annualized_volatility = np.sqrt((day_returns.var(ddof=int(bool(day_returns.shape))) + (1 + gmean_day_return)**2)**annual_trading_days - (1 + gmean_day_return)**(2*annual_trading_days)) * 100  # noqa: E501
-    sharpe_ratio = (annualized_return - risk_free_rate) / annualized_volatility
+    sharpe_ratio = (annualized_return - risk_free_rate * 100) / annualized_volatility
 
     return -sharpe_ratio
 

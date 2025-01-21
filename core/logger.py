@@ -6,6 +6,7 @@ import pandas as pd
 import json
 from typing import List, Dict, Any, Optional
 
+
 def log_all_results(results: List[Dict[str, Any]], strategies: Dict[str, int], find_best: bool, optimize_portfolio: bool, adaptive_portfolio: bool) -> None:
     with open('data/config.json', 'r') as file:
         config = json.load(file)
@@ -19,7 +20,7 @@ def log_all_results(results: List[Dict[str, Any]], strategies: Dict[str, int], f
     if config['optimize_portfolio'] or optimize_portfolio:
         log_optimized_portfolio(results)
     elif config['adaptive_portfolio'] or adaptive_portfolio:
-        log_adaptive_portfolio(results, 5, 5)
+        log_adaptive_portfolio(results, 10, 15)
     else:
         log_aggregated_results(results)
 
@@ -111,6 +112,8 @@ def log_adaptive_portfolio(results: List[Dict[str, Any]], n_divisions: int = 4, 
         predicted_sharpe_ratio = round(sharpe_ratios[i-1], 4)
 
         print(f"--------- Division {i}/{n_divisions - 1} ------------")
+        print(f"Start date: {equity_df_combined.index[start_index].strftime('%Y-%m-%d')}")
+        print(f"End date: {equity_df_combined.index[end_index-1].strftime('%Y-%m-%d')}")
         print(f"Sharpe Ratio: {current_sharpe_ratio}")
         print(f"Predicted Sharpe Ratio: {predicted_sharpe_ratio}")
         pprint(optimal_portfolios[i-1])

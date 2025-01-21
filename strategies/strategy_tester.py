@@ -32,11 +32,9 @@ def run_master_backtest(
         strategies = manager.dict(load_strategies_from_json('strategies\strategies.json'))
         community_strategies = manager.dict(load_strategies_from_json('strategies\community_strategies.json'))
         strategies.update(community_strategies)
+        stock_data = manager.dict(dm.fetch_data_or_load_cached(symbols))
 
         with Pool(min(len(symbols), cpu_count())) as pool:
-            stock_data = manager.dict({symbol: dm.fetch_data(symbol) for symbol in symbols})
-            stock_data = dm.clean_stock_data(stock_data, symbols)
-                    
             if config['compare_strategies'] or compare_strategies or config['optimize_portfolio'] or optimize_portfolio or config['adaptive_portfolio'] or adaptive_portfolio:
                 results = pool.starmap(run_backtest_process, [(stock_data, symbol, strategy, config['plot_results']) for symbol in symbols for strategy in strategies.keys()])
             elif config['find_best'] or find_best:

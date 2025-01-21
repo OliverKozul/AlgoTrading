@@ -2,6 +2,11 @@ import yfinance as yf
 import pandas as pd
 import pandas_ta as ta
 import re
+import json
+import pickle
+import os
+from multiprocessing import Pool
+from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Callable, Any
 from strategies.strategy_tester import load_strategies_from_json
 
@@ -37,6 +42,65 @@ def fetch_data_multiple(symbols: List[str], startDate: Optional[str] = None, end
     except Exception as e:
         print(f"Error fetching data for symbols: {e}")
         return None
+    
+def fetch_data_or_load_cached(symbols: List[str]) -> Dict[str, pd.DataFrame]:
+    with open('data/stock_data_download_dates.json', 'r') as file:
+        stock_data_info = json.load(file)
+
+    def should_download(category: str) -> bool:
+        last_download = stock_data_info.get(f'{category.lower()}_last_download')
+        
+        if last_download is None:
+            return True
+        
+        last_download_date = datetime.strptime(last_download, '%Y-%m-%d')
+        print(f"Last download date for requested stock data: {last_download_date}")
+
+        return datetime.now() - last_download_date >= timedelta(days=7) or not os.path.exists(f'data/{category.lower()}.pkl')
+
+    def save_data(category: str, stock_data: Dict[str, pd.DataFrame]) -> None:
+        stock_data_info[f'{category.lower()}_last_download'] = datetime.now().strftime('%Y-%m-%d')
+        
+        with open('data/stock_data_download_dates.json', 'w') as file:
+            json.dump(stock_data_info, file, indent=4)
+
+        with open(f'data/{category.lower()}.pkl', 'wb') as file:
+            pickle.dump(stock_data, file)
+
+    def load_data(category: str):
+        with open(f'data/{category.lower()}.pkl', 'rb') as file:
+            return pickle.load(file)
+
+    category = None
+
+    if symbols == load_symbols('SP'):
+        category = 'sp'
+    elif symbols == load_symbols('NQ'):
+        category = 'nq'
+    elif symbols == load_symbols('R2000'):
+        category = 'r2000'
+
+    if category:
+        if should_download(category):
+            print("Downloading new stock data.")
+            
+            with Pool() as pool:
+                stock_data = dict(zip(symbols, pool.map(fetch_data, symbols)))
+
+            stock_data = clean_stock_data(stock_data, symbols)
+            save_data(category, stock_data)
+        else:
+            print("Loading cached stock data.")
+            stock_data = load_data(category)
+    else:
+        print("No category found for requested symbols. Downloading new stock data.")
+
+        with Pool() as pool:
+                stock_data = dict(zip(symbols, pool.map(fetch_data, symbols)))
+
+        stock_data = clean_stock_data(stock_data, symbols)
+
+    return stock_data
 
 def load_symbols(category: str) -> Optional[List[str]]:
     if category == 'SP':
@@ -58,10 +122,11 @@ def snake_case_to_name(snake_case_str: str) -> str:
     return snake_case_str.replace('_', ' ')
 
 def clean_stock_data(stock_data: Dict[str, pd.DataFrame], symbols: List[str]) -> Dict[str, pd.DataFrame]:
-    for symbol, data in stock_data.items():
-        if data is None:
-            stock_data.pop(symbol)
-            symbols.remove(symbol)
+    symbols_to_remove = [symbol for symbol, data in stock_data.items() if data is None]
+
+    for symbol in symbols_to_remove:
+        stock_data.pop(symbol)
+        symbols.remove(symbol)
 
     max_length = max(len(data) for data in stock_data.values())
 
@@ -70,10 +135,11 @@ def clean_stock_data(stock_data: Dict[str, pd.DataFrame], symbols: List[str]) ->
     else:
         print(f"All data lengths are equal length: {max_length}.")
 
-    for symbol, data in stock_data.items():
-        if len(data) != max_length:
-            stock_data.pop(symbol)
-            symbols.remove(symbol)
+    symbols_to_remove = [symbol for symbol, data in stock_data.items() if len(data) != max_length]
+
+    for symbol in symbols_to_remove:
+        stock_data.pop(symbol)
+        symbols.remove(symbol)
 
     print(f"Remaining symbol count after cleaning: {len(symbols)}")
 
