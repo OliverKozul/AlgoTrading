@@ -4,9 +4,9 @@ from pprint import pprint
 import numpy as np
 import pandas as pd
 import json
+from typing import List, Dict, Any, Optional
 
-
-def log_all_results(results, strategies, find_best, optimize_portfolio, adaptive_portfolio):
+def log_all_results(results: List[Dict[str, Any]], strategies: Dict[str, int], find_best: bool, optimize_portfolio: bool, adaptive_portfolio: bool) -> None:
     with open('data/config.json', 'r') as file:
         config = json.load(file)
 
@@ -23,7 +23,7 @@ def log_all_results(results, strategies, find_best, optimize_portfolio, adaptive
     else:
         log_aggregated_results(results)
 
-def log(backtest_results):
+def log(backtest_results: Dict[str, Any]) -> None:
     result_type = "W" if backtest_results['Return [%]'] > backtest_results['Buy & Hold Return [%]'] else "L"
     print(f"| {result_type} R %: {round(backtest_results['Return [%]'], 2):<7}| "
           f"B&H R %: {round(backtest_results['Buy & Hold Return [%]'], 2):<7}| "
@@ -33,7 +33,7 @@ def log(backtest_results):
           f"Sharpe Ratio: {round(backtest_results['Sharpe Ratio'], 2):<5}| "
           f"Win Rate: {round(backtest_results['Win Rate [%]'], 2):<5} |")
 
-def log_simple(result):
+def log_simple(result: Optional[Dict[str, Any]]) -> None:
     if result is None:
         return
 
@@ -43,7 +43,7 @@ def log_simple(result):
           f"Sharpe Ratio: {round(result['sharpe'], 2):<5} | "
           f"Strategy: {result['strategy']}")
 
-def log_aggregated_results(results):
+def log_aggregated_results(results: List[Dict[str, Any]]) -> None:
     if not results:
         print("No results to aggregate.")
         return
@@ -69,7 +69,7 @@ def log_aggregated_results(results):
     print(f"Strategy was implemented on {len(results)} symbols.")
     plot(equity_curve['Equity'])
 
-def log_optimized_portfolio(results):
+def log_optimized_portfolio(results: List[Dict[str, Any]]) -> None:
     sharpe_threshold = 0.3
     starting_balance = 100000
     optimal_portfolio, optimal_weights, optimized_sharpe = calculate_optimal_portfolio(results, sharpe_threshold)
@@ -86,7 +86,7 @@ def log_optimized_portfolio(results):
     print(f"Optimized Sharpe Ratio: {round(optimized_sharpe, 2)}")
     plot(equity_df_combined)
 
-def log_adaptive_portfolio(results, n_divisions=4, strategy_limit=25):
+def log_adaptive_portfolio(results: List[Dict[str, Any]], n_divisions: int = 4, strategy_limit: int = 25) -> None:
     starting_balance = 100000.0
     all_optimal_weights, optimal_portfolios, sharpe_ratios, sharpe_threshold = calculate_adaptive_portfolio(results, n_divisions, strategy_limit)
     dfs = [result['equity_curve'] for result in results if result['sharpe'] >= sharpe_threshold]
@@ -131,7 +131,7 @@ def log_adaptive_portfolio(results, n_divisions=4, strategy_limit=25):
     print(f"Adaptive Sharpe Ratio: {round(adaptive_sharpe, 2)}")
     plot_divided(equity_df_combined, n_divisions - 1)
 
-def compare_results(strategies):
+def compare_results(strategies: Dict[str, int]) -> None:
     print()
     for strategy, count in strategies.items():
         print(f"Strategy {strategy} was selected {count} times.")
