@@ -28,4 +28,3 @@ def plot_divided(equity: pd.Series, n_divisions: int):
     
     plt.plot([equity.index[0], equity.index[-1]], [equity.iloc[0], equity.iloc[-1]], color='green', linestyle='--', label='Ideal Equity')
     show_plot()
-    

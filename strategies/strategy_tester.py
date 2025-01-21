@@ -1,16 +1,27 @@
 import core.data_manipulator as dm
 import json
 import strategies.strats as strats
+import pandas as pd
 from backtesting import Backtest
 from multiprocessing import Pool, Manager, cpu_count
 from core.logger import log_all_results
+from typing import List, Dict, Any, Optional
 
 
-def load_strategies_from_json(file_path):
+def load_strategies_from_json(file_path: str) -> Dict[str, Any]:
     with open(file_path, 'r') as file:
         return json.load(file)
 
-def run_master_backtest(symbols, strategy, compare_strategies = False, find_best = False, adaptive_strategy = False, optimize_portfolio = False, adaptive_portfolio = False, plot_results = False):
+def run_master_backtest(
+    symbols: List[str], 
+    strategy: str, 
+    compare_strategies: bool = False, 
+    find_best: bool = False, 
+    adaptive_strategy: bool = False, 
+    optimize_portfolio: bool = False, 
+    adaptive_portfolio: bool = False, 
+    plot_results: bool = False
+) -> List[Optional[Dict[str, Any]]]:
     with open('data\config.json', 'r') as file:
         config = json.load(file)
     
@@ -44,11 +55,24 @@ def run_master_backtest(symbols, strategy, compare_strategies = False, find_best
 
     return results
 
-def run_backtest(stock_data, symbol, strategy, plot = False, start_date = None, end_date = None, start_percent = 0, end_percent = 1):
+def run_backtest(
+    stock_data: Dict[str, pd.DataFrame], 
+    symbol: str, 
+    strategy: str, 
+    plot: bool = False, 
+    start_date: Optional[str] = None, 
+    end_date: Optional[str] = None, 
+    start_percent: float = 0, 
+    end_percent: float = 1
+) -> Optional[Dict[str, Any]]:
     if stock_data[symbol] is None:
         return None
     
-    df = stock_data[symbol].copy()
+    if start_date is not None and end_date is not None:
+        df = dm.fetch_data(symbol, start_date, end_date)
+    else:
+        df = stock_data[symbol].copy()
+
     start_index = int(start_percent * len(df))
     end_index = int(end_percent * len(df))
     df = df.iloc[start_index:end_index]
@@ -63,7 +87,12 @@ def run_backtest(stock_data, symbol, strategy, plot = False, start_date = None, 
 
     return result
 
-def run_backtest_process(stock_data, symbol, strategy, plot = False):
+def run_backtest_process(
+    stock_data: Dict[str, pd.DataFrame], 
+    symbol: str, 
+    strategy: str, 
+    plot: bool = False
+) -> Optional[Dict[str, Any]]:
     result = run_backtest(stock_data, symbol, strategy, plot)
     
     if result is None:
@@ -73,7 +102,14 @@ def run_backtest_process(stock_data, symbol, strategy, plot = False):
 
     return simplified_result
 
-def find_best_backtest(stock_data, symbol, strategies, plot = False, start_percent = 0, end_percent = 1):
+def find_best_backtest(
+    stock_data: Dict[str, pd.DataFrame], 
+    symbol: str, 
+    strategies: Dict[str, int], 
+    plot: bool = False, 
+    start_percent: float = 0, 
+    end_percent: float = 1
+) -> Optional[Dict[str, Any]]:
     best_strategy = None
     best_result = None
     best_sharpe = 0
@@ -99,7 +135,14 @@ def find_best_backtest(stock_data, symbol, strategies, plot = False, start_perce
 
     return simplified_result
 
-def run_adaptive_backtest(stock_data, symbol, strategies, plot = False, start_percent = 0, end_percent = 0.5):
+def run_adaptive_backtest(
+    stock_data: Dict[str, pd.DataFrame], 
+    symbol: str, 
+    strategies: Dict[str, int], 
+    plot: bool = False, 
+    start_percent: float = 0, 
+    end_percent: float = 0.5
+) -> Optional[Dict[str, Any]]:
     results = find_best_backtest(stock_data, symbol, strategies, plot, start_percent=start_percent, end_percent=end_percent)
 
     if results is None:
@@ -112,7 +155,13 @@ def run_adaptive_backtest(stock_data, symbol, strategies, plot = False, start_pe
 
     return simplified_result
 
-def gather_backtest_result(df, symbol, strategy, size, plot = False):
+def gather_backtest_result(
+    df: pd.DataFrame, 
+    symbol: str, 
+    strategy: str, 
+    size: float, 
+    plot: bool = False
+) -> Optional[Dict[str, Any]]:
     try:
         bt = Backtest(df, strats.load_strategy(strategy, df, size), cash=100000, margin=1/1, commission=0.00025)
 
