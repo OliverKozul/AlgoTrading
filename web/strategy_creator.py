@@ -3,9 +3,12 @@ from dash.exceptions import PreventUpdate
 from dash.dependencies import ALL
 import json
 import strategies.strategy_tester as st
+from dash import Dash
+from typing import List
 
 
-def create_strategy_creator_tab_layout():
+# This tab is deprecated and will be removed or redesigned in the future
+def create_strategy_creator_tab_layout() -> html.Div:
     return html.Div([
         # Header
         html.H3("Strategy Creator", style={"textAlign": "center", "marginBottom": "20px", "color": "#FFFFFF"}),
@@ -81,12 +84,12 @@ def create_strategy_creator_tab_layout():
     ], style={"backgroundColor": "#121212", "padding": "20px"})
 
 
-def register_callbacks(app):
+def register_callbacks(app: Dash) -> None:
     @app.callback(
         Output("dynamic-inputs", "children"),
         Input("indicator-dropdown", "value")
     )
-    def update_dynamic_inputs(selected_indicators):
+    def update_dynamic_inputs(selected_indicators: List[str]) -> List[html.Div]:
         if not selected_indicators:
             return []
 
@@ -109,7 +112,7 @@ def register_callbacks(app):
         State({"type": "indicator-length", "indicator": ALL}, "value"),  # Fetch all indicator lengths
         State({"type": "indicator-logic", "indicator": ALL}, "value")    # Fetch all indicator logics
     )
-    def create_strategy(n_clicks, strategy_name, selected_indicators, lengths, logics):
+    def create_strategy(n_clicks: int, strategy_name: str, selected_indicators: List[str], lengths: List[int], logics: List[str]) -> str:
         if n_clicks is None:
             raise PreventUpdate
 
@@ -142,7 +145,7 @@ def register_callbacks(app):
 
         return f"Strategy '{strategy_name}' created successfully!"
 
-def generate_strategy_code(strategy_name, indicators, lengths, logics):
+def generate_strategy_code(strategy_name: str, indicators: List[str], lengths: List[int], logics: List[str]) -> str:
     code = f"""
     
 # {strategy_name}
@@ -179,7 +182,7 @@ def remove_{strategy_name.lower()}_columns(df):"""
 
     return code
 
-def generate_class_code(strategy_name):
+def generate_class_code(strategy_name: str) -> str:
     code = f"""
 class {strategy_name.lower()}(Base_Strategy):
     def init(self):
@@ -191,4 +194,3 @@ class {strategy_name.lower()}(Base_Strategy):
 """
     
     return code
-    
