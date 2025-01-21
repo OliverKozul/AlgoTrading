@@ -160,6 +160,6 @@ def create_roc_mean_reversion_signals(df, rocThreshold=-5):
 def create_buy_and_holder_signals(df):
     df.loc[df['ema'] > 0, 'BUYSignal'] = 1
 
-@add_columns({'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14), 'prev_close': lambda df: df['Close'].shift(1), 'prev_open': lambda df: df['Open'].shift(1), 'ema': lambda df: ta.ema(df['Close'], length=50)})
+@add_columns({'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14), 'prev_close': lambda df: df['Close'].shift(1), 'prev_open': lambda df: df['Open'].shift(1)})
 def create_buy_after_red_day_signals(df):
     df.loc[df['prev_close'] < df['prev_open'], 'BUYSignal'] = 1

@@ -7,7 +7,7 @@ import json
 
 
 def log_all_results(results, strategies, find_best, optimize_portfolio, adaptive_portfolio):
-    with open('data\config.json', 'r') as file:
+    with open('data/config.json', 'r') as file:
         config = json.load(file)
 
     for result in results:
@@ -24,55 +24,42 @@ def log_all_results(results, strategies, find_best, optimize_portfolio, adaptive
         log_aggregated_results(results)
 
 def log(backtest_results):
-    if backtest_results['Return [%]'] > backtest_results['Buy & Hold Return [%]']:
-        print(f"| W R %: {str(round(backtest_results['Return [%]'], 2)).ljust(7)}| "
-            f"B&H R %: {str(round(backtest_results['Buy & Hold Return [%]'], 2)).ljust(7)}| "
-            f"DD %: {str(round(backtest_results['Max. Drawdown [%]'], 2)).ljust(7)}| "
-            f"#T: {str(backtest_results['# Trades']).ljust(4)}| "
-            f"In {(backtest_results['End'] - backtest_results['Start']).days} days | "
-            f"Sharpe Ratio: {str(round(backtest_results['Sharpe Ratio'], 2)).ljust(5)}| "
-            f"Win Rate: {str(round(backtest_results['Win Rate [%]'], 2)).ljust(5)} |")
-    else:
-        print(f"| L R %: {str(round(backtest_results['Return [%]'], 2)).ljust(7)}| "
-            f"B&H R %: {str(round(backtest_results['Buy & Hold Return [%]'], 2)).ljust(7)}| "
-            f"DD %: {str(round(backtest_results['Max. Drawdown [%]'], 2)).ljust(7)}| "
-            f"#T: {str(backtest_results['# Trades']).ljust(4)}| "
-            f"In {(backtest_results['End'] - backtest_results['Start']).days} days | "
-            f"Sharpe Ratio: {str(round(backtest_results['Sharpe Ratio'], 2)).ljust(5)}| "
-            f"Win Rate: {str(round(backtest_results['Win Rate [%]'], 2)).ljust(5)} |")
+    result_type = "W" if backtest_results['Return [%]'] > backtest_results['Buy & Hold Return [%]'] else "L"
+    print(f"| {result_type} R %: {round(backtest_results['Return [%]'], 2):<7}| "
+          f"B&H R %: {round(backtest_results['Buy & Hold Return [%]'], 2):<7}| "
+          f"DD %: {round(backtest_results['Max. Drawdown [%]'], 2):<7}| "
+          f"#T: {backtest_results['# Trades']:<4}| "
+          f"In {(backtest_results['End'] - backtest_results['Start']).days} days | "
+          f"Sharpe Ratio: {round(backtest_results['Sharpe Ratio'], 2):<5}| "
+          f"Win Rate: {round(backtest_results['Win Rate [%]'], 2):<5} |")
 
 def log_simple(result):
     if result is None:
         return
-    
-    print(f"{str(result['symbol']).ljust(5)} | "
-            f"Return: {str(round(result['return'], 2)).ljust(7)}% | "
-            f"Max. Drawdown: {str(round(-result['max_drawdown'], 2)).ljust(5)}% | "
-            f"Sharpe Ratio: {str(round(result['sharpe'], 2)).ljust(5)} | "
-            f"Strategy: {result['strategy']}")
+
+    print(f"{result['symbol']:<5} | "
+          f"Return: {round(result['return'], 2):<7}% | "
+          f"Max. Drawdown: {round(-result['max_drawdown'], 2):<5}% | "
+          f"Sharpe Ratio: {round(result['sharpe'], 2):<5} | "
+          f"Strategy: {result['strategy']}")
 
 def log_aggregated_results(results):
+    if not results:
+        print("No results to aggregate.")
+        return
+
     equity_curve = pd.DataFrame()
     starting_balance = 100000
     trade_count = sum(result['# trades'] for result in results)
     sharpe_sum = sum(result['sharpe'] for result in results)
 
-    if len(results) == 0:
-        print("No results to aggregate.")
-        return
-    
     equity_curve['DrawdownPct'] = sum(result['equity_curve']['DrawdownPct'] for result in results) / len(results)
     equity_curve['Equity'] = sum(result['equity_curve']['Equity'] for result in results) / len(results)
 
-    if equity_curve is None:
-        print("No results to aggregate.")
-        return
-    
     combined_sharpe = calculate_sharpe_ratio(equity_curve['Equity'])
     max_drawdown_index = equity_curve['DrawdownPct'].idxmax().strftime('%Y-%m-%d')
-    
-    print()
-    print(f"Final aggregated equity: ${round(equity_curve['Equity'].iloc[-1])}")
+
+    print(f"\nFinal aggregated equity: ${round(equity_curve['Equity'].iloc[-1])}")
     print(f"Return: {round(100 * (equity_curve['Equity'].iloc[-1] - starting_balance) / starting_balance, 2)}%")
     print(f"Maximum aggregated drawdown: {round(equity_curve['DrawdownPct'].max() * 100, 2)}% at date: {max_drawdown_index}")
     print(f"Average Sharpe Ratio: {round(sharpe_sum / len(results), 2)}")
@@ -99,8 +86,8 @@ def log_optimized_portfolio(results):
     print(f"Optimized Sharpe Ratio: {round(optimized_sharpe, 2)}")
     plot(equity_df_combined)
 
-def log_adaptive_portfolio(results, n_divisions = 4, strategy_limit = 25):
-    starting_balance = float(100000)
+def log_adaptive_portfolio(results, n_divisions=4, strategy_limit=25):
+    starting_balance = 100000.0
     all_optimal_weights, optimal_portfolios, sharpe_ratios, sharpe_threshold = calculate_adaptive_portfolio(results, n_divisions, strategy_limit)
     dfs = [result['equity_curve'] for result in results if result['sharpe'] >= sharpe_threshold]
     equity_df_combined = pd.Series(starting_balance, index=dfs[0]['Equity'].index, dtype=float)
