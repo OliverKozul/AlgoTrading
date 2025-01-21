@@ -9,14 +9,15 @@ import web.pnl_calculator as pnl_calculator
 import web.training as training
 import web.stock_screener as stock_screener
 from web.utils import apply_dark_theme
+from typing import List, Dict, Any, Tuple
 
 
 app = Dash("Cool", suppress_callback_exceptions=True)
 
-symbols = load_symbols('SP')
-strategies_dict = load_strategies_from_json('strategies\strategies.json')
-community_strategies_dict = load_strategies_from_json('strategies\community_strategies.json')
-last_year = datetime.today().year - 1
+symbols: List[str] = load_symbols('SP')
+strategies_dict: Dict[str, Any] = load_strategies_from_json('strategies\strategies.json')
+community_strategies_dict: Dict[str, Any] = load_strategies_from_json('strategies\community_strategies.json')
+last_year: int = datetime.today().year - 1
 
 app.layout = html.Div([
     dcc.Tabs(id='tabs', value='home', children=[
@@ -30,7 +31,7 @@ app.layout = html.Div([
     html.Div(id='tabs-content')
 ])
 
-def create_home_tab_layout():
+def create_home_tab_layout() -> html.Div:
     return html.Div([
         html.H3("Backtest Results", style={"textAlign": "center", "marginBottom": "20px", "color": "#FFFFFF"}),
 
@@ -126,7 +127,7 @@ def create_home_tab_layout():
     Output('tabs-content', 'children'),
     Input('tabs', 'value')
 )
-def render_tab_content(tab):
+def render_tab_content(tab: str) -> html.Div:
     if tab == 'home':
         return create_home_tab_layout()
     elif tab == 'backtest':
@@ -157,7 +158,14 @@ stock_screener.register_callbacks(app)
     Input('start-year-dropdown', 'value'),
     Input('end-year-dropdown', 'value')
 )
-def update_equity_curve(n_clicks, selected_symbols, official_strategies, community_strategies, start_year, end_year):
+def update_equity_curve(
+    n_clicks: int,
+    selected_symbols: List[str],
+    official_strategies: List[str],
+    community_strategies: List[str],
+    start_year: str,
+    end_year: str
+) -> Tuple[go.Figure, str]:
     if not n_clicks or not selected_symbols:
         figure = go.Figure()
         figure.update_layout(
@@ -214,7 +222,6 @@ def update_equity_curve(n_clicks, selected_symbols, official_strategies, communi
         return combined_fig, error_message
 
     return go.Figure(), error_message
-
 
 if __name__ == '__main__':
     app.run_server(debug=True)
