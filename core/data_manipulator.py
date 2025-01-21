@@ -49,7 +49,7 @@ def fetch_data_or_load_cached(symbols: List[str]) -> Dict[str, pd.DataFrame]:
 
     def should_download(category: str) -> bool:
         last_download = stock_data_info.get(f'{category.lower()}_last_download')
-        
+
         if last_download is None:
             return True
         
@@ -96,7 +96,7 @@ def fetch_data_or_load_cached(symbols: List[str]) -> Dict[str, pd.DataFrame]:
         print("No category found for requested symbols. Downloading new stock data.")
 
         with Pool() as pool:
-                stock_data = dict(zip(symbols, pool.map(fetch_data, symbols)))
+            stock_data = dict(zip(symbols, pool.map(fetch_data, symbols)))
 
         stock_data = clean_stock_data(stock_data, symbols)
 

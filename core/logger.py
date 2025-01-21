@@ -20,7 +20,7 @@ def log_all_results(results: List[Dict[str, Any]], strategies: Dict[str, int], f
     if config['optimize_portfolio'] or optimize_portfolio:
         log_optimized_portfolio(results)
     elif config['adaptive_portfolio'] or adaptive_portfolio:
-        log_adaptive_portfolio(results, 10, 15)
+        log_adaptive_portfolio(results, 10, 10)
     else:
         log_aggregated_results(results)
 

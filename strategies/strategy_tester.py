@@ -33,6 +33,7 @@ def run_master_backtest(
         community_strategies = manager.dict(load_strategies_from_json('strategies\community_strategies.json'))
         strategies.update(community_strategies)
         stock_data = manager.dict(dm.fetch_data_or_load_cached(symbols))
+        symbols = list(stock_data.keys())
 
         with Pool(min(len(symbols), cpu_count())) as pool:
             if config['compare_strategies'] or compare_strategies or config['optimize_portfolio'] or optimize_portfolio or config['adaptive_portfolio'] or adaptive_portfolio:
