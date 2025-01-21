@@ -1,4 +1,6 @@
-def apply_dark_theme(fig):
+import plotly.graph_objs as go
+
+def apply_dark_theme(fig: go.Figure) -> None:
     fig.update_layout(
         template="plotly_dark",
         plot_bgcolor="#1E1E1E",
