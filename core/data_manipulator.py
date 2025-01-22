@@ -44,11 +44,11 @@ def fetch_data_multiple(symbols: List[str], startDate: Optional[str] = None, end
         return None
     
 def fetch_data_or_load_cached(symbols: List[str]) -> Dict[str, pd.DataFrame]:
-    with open('data/stock_data_download_dates.json', 'r') as file:
+    with open('data/index_info.json', 'r') as file:
         stock_data_info = json.load(file)
 
     def should_download(category: str) -> bool:
-        last_download = stock_data_info.get(f'{category.lower()}_last_download')
+        last_download = stock_data_info[category]['last_download_date']
 
         if last_download is None:
             return True
@@ -59,16 +59,16 @@ def fetch_data_or_load_cached(symbols: List[str]) -> Dict[str, pd.DataFrame]:
         return datetime.now() - last_download_date >= timedelta(days=7) or not os.path.exists(f'data/{category.lower()}.pkl')
 
     def save_data(category: str, stock_data: Dict[str, pd.DataFrame]) -> None:
-        stock_data_info[f'{category.lower()}_last_download'] = datetime.now().strftime('%Y-%m-%d')
+        stock_data_info[category]['last_download_date'] = datetime.now().strftime('%Y-%m-%d')
         
-        with open('data/stock_data_download_dates.json', 'w') as file:
+        with open('data/index_info.json', 'w') as file:
             json.dump(stock_data_info, file, indent=4)
 
-        with open(f'data/{category.lower()}.pkl', 'wb') as file:
+        with open(f'data/{category}.pkl', 'wb') as file:
             pickle.dump(stock_data, file)
 
     def load_data(category: str):
-        with open(f'data/{category.lower()}.pkl', 'rb') as file:
+        with open(f'data/{category}.pkl', 'rb') as file:
             return pickle.load(file)
 
     category = None
@@ -101,6 +101,60 @@ def fetch_data_or_load_cached(symbols: List[str]) -> Dict[str, pd.DataFrame]:
         stock_data = clean_stock_data(stock_data, symbols)
 
     return stock_data
+
+def load_cached_results(symbols: List[str], strategies: List[str]) -> Optional[List[Dict[str, Any]]]:
+    with open('data/index_info.json', 'r') as file:
+        stock_data_info = json.load(file)
+    
+    results = None
+    category = None
+
+    if symbols == load_symbols('SP'):
+        category = 'sp'
+    elif symbols == load_symbols('NQ'):
+        category = 'nq'
+    elif symbols == load_symbols('R2000'):
+        category = 'r2000'
+
+    if category is None:
+        return None
+    
+    if stock_data_info[category]['strategies'] != strategies or datetime.now() - datetime.strptime(stock_data_info[category]['last_backtest_date'], '%Y-%m-%d') >= timedelta(days=7):
+        return None
+
+    if os.path.exists(f'data/{category}_results.pkl'):
+        print("Cached results found. Loading cached results.")
+        with open(f'data/{category}_results.pkl', 'rb') as file:
+            results = pickle.load(file)
+
+    return results
+
+def save_results(results: List[Dict[str, Any]], strategies: List[str]) -> None:
+    with open('data/index_info.json', 'r') as file:
+        stock_data_info = json.load(file)
+
+    print("Saving results.")
+
+    category = None
+
+    if results[0]['symbol'] in load_symbols('SP'):
+        category = 'sp'
+    elif results[0]['symbol'] in load_symbols('NQ'):
+        category = 'nq'
+    elif results[0]['symbol'] in load_symbols('R2000'):
+        category = 'r2000'
+
+    if category is None:
+        return
+
+    stock_data_info[category]['last_backtest_date'] = datetime.now().strftime('%Y-%m-%d')
+    stock_data_info[category]['strategies'] = strategies
+
+    with open('data/index_info.json', 'w') as file:
+        json.dump(stock_data_info, file, indent=4)
+
+    with open(f'data/{category}_results.pkl', 'wb') as file:
+        pickle.dump(results, file)
 
 def load_symbols(category: str) -> Optional[List[str]]:
     if category == 'SP':
@@ -205,19 +259,19 @@ def create_buy_and_hold_signals(df: pd.DataFrame) -> None:
 def create_daily_range_signals(df: pd.DataFrame, low_percentage: int = 10) -> None:
     df.loc[df['current_percent'] <= low_percentage, 'BUYSignal'] = 1
 
-@add_columns({'rsi': lambda df: ta.rsi(df['Close'], length=2), 'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14)})
+@add_columns({'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14), 'rsi': lambda df: ta.rsi(df['Close'], length=2)})
 def create_solo_rsi_signals(df: pd.DataFrame, rsi_threshold: int = 10) -> None:
     df.loc[df['rsi'] < rsi_threshold, 'BUYSignal'] = 1
 
-@add_columns({'roc': lambda df: ta.roc(df['Close'], length=60), 'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14)})
+@add_columns({'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14), 'roc': lambda df: ta.roc(df['Close'], length=60)})
 def create_roc_trend_following_bull_signals(df: pd.DataFrame, rocThreshold: int = 30) -> None:
     df.loc[df['roc'] > rocThreshold, 'BUYSignal'] = 1
 
-@add_columns({'roc': lambda df: ta.roc(df['Close'], length=60), 'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14)})
+@add_columns({'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14), 'roc': lambda df: ta.roc(df['Close'], length=60)})
 def create_roc_trend_following_bear_signals(df: pd.DataFrame, rocThreshold: int = -30) -> None:
     df.loc[df['roc'] < rocThreshold, 'BUYSignal'] = 1
 
-@add_columns({'roc': lambda df: ta.roc(df['Close'], length=14), 'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14)})
+@add_columns({'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14), 'roc': lambda df: ta.roc(df['Close'], length=14)})
 def create_roc_mean_reversion_signals(df: pd.DataFrame, rocThreshold: int = -5) -> None:
     df.loc[df['roc'] < rocThreshold, 'BUYSignal'] = 1
 
@@ -228,3 +282,7 @@ def create_buy_and_holder_signals(df: pd.DataFrame) -> None:
 @add_columns({'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14), 'prev_close': lambda df: df['Close'].shift(1), 'prev_open': lambda df: df['Open'].shift(1)})
 def create_buy_after_red_day_signals(df: pd.DataFrame) -> None:
     df.loc[df['prev_close'] < df['prev_open'], 'BUYSignal'] = 1
+
+@add_columns({'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14), 'prev_close': lambda df: df['Close'].shift(1), 'prev_open': lambda df: df['Open'].shift(1)})
+def create_buy_after_green_day_signals(df: pd.DataFrame) -> None:
+    df.loc[df['prev_close'] > df['prev_open'], 'BUYSignal'] = 1

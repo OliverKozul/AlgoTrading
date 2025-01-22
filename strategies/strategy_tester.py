@@ -6,6 +6,7 @@ from backtesting import Backtest
 from multiprocessing import Pool, Manager, cpu_count
 from core.logger import log_all_results
 from typing import List, Dict, Any, Optional
+import time
 
 
 def load_strategies_from_json(file_path: str) -> Dict[str, Any]:
@@ -24,6 +25,9 @@ def run_master_backtest(
 ) -> List[Optional[Dict[str, Any]]]:
     with open('data\config.json', 'r') as file:
         config = json.load(file)
+
+    multiple_strategies = config['compare_strategies'] or config['optimize_portfolio'] or config['adaptive_portfolio'] or config['find_best'] or config['adaptive_strategy']
+    new_results = False
     
     if (config['plot_results'] and len(symbols) > 10) or not plot_results:
         config['plot_results'] = False
@@ -32,25 +36,39 @@ def run_master_backtest(
         strategies = manager.dict(load_strategies_from_json('strategies\strategies.json'))
         community_strategies = manager.dict(load_strategies_from_json('strategies\community_strategies.json'))
         strategies.update(community_strategies)
+        # strategies = manager.dict({'Buy_After_Red_Day': 0})
         stock_data = manager.dict(dm.fetch_data_or_load_cached(symbols))
+
+        if multiple_strategies:
+            results = dm.load_cached_results(symbols, strategies.keys())
+            new_results = results is None
+        else:
+            results = None
+
         symbols = list(stock_data.keys())
 
-        with Pool(min(len(symbols), cpu_count())) as pool:
-            if config['compare_strategies'] or compare_strategies or config['optimize_portfolio'] or optimize_portfolio or config['adaptive_portfolio'] or adaptive_portfolio:
-                results = pool.starmap(run_backtest_process, [(stock_data, symbol, strategy, config['plot_results']) for symbol in symbols for strategy in strategies.keys()])
-            elif config['find_best'] or find_best:
-                results = pool.starmap(find_best_backtest, [(stock_data, symbol, strategies, config['plot_results']) for symbol in symbols])
-            elif config['adaptive_strategy'] or adaptive_strategy:
-                results = pool.starmap(run_adaptive_backtest, [(stock_data, symbol, strategies, config['plot_results']) for symbol in symbols])
-            else:
-                results = pool.starmap(run_backtest_process, [(stock_data, symbol, strategy, config['plot_results']) for symbol in symbols])
+        if results is None:
+            with Pool(min(len(symbols), cpu_count())) as pool:
+                if config['compare_strategies'] or compare_strategies or config['optimize_portfolio'] or optimize_portfolio or config['adaptive_portfolio'] or adaptive_portfolio:
+                    results = pool.starmap(run_backtest_process, [(stock_data, symbol, strategy, config['plot_results']) for symbol in symbols for strategy in strategies.keys()])
+                elif config['find_best'] or find_best:
+                    results = pool.starmap(find_best_backtest, [(stock_data, symbol, strategies, config['plot_results']) for symbol in symbols])
+                elif config['adaptive_strategy'] or adaptive_strategy:
+                    results = pool.starmap(run_adaptive_backtest, [(stock_data, symbol, strategies, config['plot_results']) for symbol in symbols])
+                else:
+                    results = pool.starmap(run_backtest_process, [(stock_data, symbol, strategy, config['plot_results']) for symbol in symbols])
+
+        strategies = dict(strategies)
 
     results = [result for result in results if result is not None]
 
     if config['sort_results']:
-        results = sorted(results, key=lambda x: x[config['sorting_criteria']], reverse=True)
-
+        results = sorted(results, key=lambda x: x[config['sorting_criteria']])
+    
     log_all_results(results, strategies, find_best, optimize_portfolio, adaptive_portfolio)
+
+    if multiple_strategies and new_results:
+        dm.save_results(results, list(strategies.keys()))
 
     return results
 

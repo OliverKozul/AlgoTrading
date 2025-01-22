@@ -1,5 +1,5 @@
 from core.plotter import plot, plot_divided
-from core.utils import calculate_sharpe_ratio, calculate_optimal_portfolio, calculate_adaptive_portfolio
+from core.utils import calculate_sharpe_ratio, calculate_optimal_portfolio, calculate_adaptive_portfolio, calculate_weighted_sharpe_ratio_negative
 from pprint import pprint
 import numpy as np
 import pandas as pd
@@ -20,7 +20,7 @@ def log_all_results(results: List[Dict[str, Any]], strategies: Dict[str, int], f
     if config['optimize_portfolio'] or optimize_portfolio:
         log_optimized_portfolio(results)
     elif config['adaptive_portfolio'] or adaptive_portfolio:
-        log_adaptive_portfolio(results, 10, 10)
+        log_adaptive_portfolio(results, 5, 5)
     else:
         log_aggregated_results(results)
 
@@ -73,7 +73,7 @@ def log_aggregated_results(results: List[Dict[str, Any]]) -> None:
 def log_optimized_portfolio(results: List[Dict[str, Any]]) -> None:
     sharpe_threshold = 0.3
     starting_balance = 100000
-    optimal_portfolio, optimal_weights, optimized_sharpe = calculate_optimal_portfolio(results, sharpe_threshold)
+    optimal_portfolio, optimal_weights, optimized_sharpe = calculate_optimal_portfolio(results, 1, sharpe_threshold)
     dfs = [result['equity_curve'] for result in results if result['sharpe'] >= sharpe_threshold]
     n_assets = len(dfs)
     equity_df_combined = sum(dfs[i]['Equity'] * optimal_weights[i] for i in range(n_assets)).dropna()
@@ -89,46 +89,68 @@ def log_optimized_portfolio(results: List[Dict[str, Any]]) -> None:
 
 def log_adaptive_portfolio(results: List[Dict[str, Any]], n_divisions: int = 4, strategy_limit: int = 25) -> None:
     starting_balance = 100000.0
-    all_optimal_weights, optimal_portfolios, sharpe_ratios, sharpe_threshold = calculate_adaptive_portfolio(results, n_divisions, strategy_limit)
-    dfs = [result['equity_curve'] for result in results if result['sharpe'] >= sharpe_threshold]
-    equity_df_combined = pd.Series(starting_balance, index=dfs[0]['Equity'].index, dtype=float)
-    drawdown_df_combined = pd.Series(0, index=dfs[0]['DrawdownPct'].index, dtype=float)
-    n_dfs = len(dfs)
+    optimal_portfolios, sharpe_ratios = calculate_adaptive_portfolio(results, n_divisions, strategy_limit)
+    division_length = len(results[0]['equity_curve']['Equity']) // n_divisions
+    equity_index = results[0]['equity_curve']['Equity'].index[division_length:]
+    drawdown_index = results[0]['equity_curve']['DrawdownPct'].index[division_length:]
+    
+    equity_df_combined = pd.Series(starting_balance, index=equity_index, dtype=float)
+    drawdown_df_combined = pd.Series(0, index=drawdown_index, dtype=float)
 
     print(f"--------- Division 0/{n_divisions - 1} ---------")
     print("Used for optimizing.")
 
     for i in range(1, n_divisions):
-        start_index = i * (len(dfs[0]['Equity']) // n_divisions)
-        end_index = (i + 1) * (len(dfs[0]['Equity']) // n_divisions)
+        start_index = i * division_length
+        end_index = (i + 1) * division_length
+        start_index_shifted = start_index - division_length
+        end_index_shifted = end_index - division_length
 
-        for j in range(n_dfs):
-            equity_df_combined[start_index:end_index] += dfs[j]['Equity'][start_index:end_index] * all_optimal_weights[i-1][j]
-            drawdown_df_combined[start_index:end_index] += dfs[j]['DrawdownPct'][start_index:end_index] * all_optimal_weights[i-1][j]
+        previous_equity_end = equity_df_combined.iloc[start_index_shifted - 1] if start_index_shifted > 0 else starting_balance
 
-        equity_df_combined[start_index:end_index] += equity_df_combined.iloc[start_index-1] - equity_df_combined.iloc[start_index]
-        drawdown_df_combined[start_index:end_index] += drawdown_df_combined.iloc[start_index-1] - drawdown_df_combined.iloc[start_index]
-        current_sharpe_ratio = round(calculate_sharpe_ratio(equity_df_combined[start_index:end_index]), 4)
-        predicted_sharpe_ratio = round(sharpe_ratios[i-1], 4)
+        for symbol, data in optimal_portfolios[i - 1].items():
+            current_results = [
+                result for result in results
+                if result['symbol'] == symbol and result['strategy'] in [df['strategy'] for df in data]
+            ]
 
-        print(f"--------- Division {i}/{n_divisions - 1} ------------")
-        print(f"Start date: {equity_df_combined.index[start_index].strftime('%Y-%m-%d')}")
-        print(f"End date: {equity_df_combined.index[end_index-1].strftime('%Y-%m-%d')}")
+            for current_result in current_results:
+                equity_curve = current_result['equity_curve']['Equity']
+                drawdown_curve = current_result['equity_curve']['DrawdownPct']
+                
+                equity_curve_adjusted = equity_curve - equity_curve.iloc[start_index]
+                drawdown_curve_adjusted = drawdown_curve - drawdown_curve.iloc[start_index]
+
+                for strategy in data:
+                    if strategy['strategy'] == current_result['strategy']:
+                        equity = equity_curve_adjusted[start_index:end_index] * strategy['weight']
+                        drawdown = drawdown_curve_adjusted[start_index:end_index] * strategy['weight']
+
+                        equity_df_combined[start_index_shifted:end_index_shifted] += equity
+                        drawdown_df_combined[start_index_shifted:end_index_shifted] += drawdown
+                        break
+
+        transition_value = equity_df_combined.iloc[start_index_shifted] if start_index_shifted > 0 else starting_balance
+        equity_df_combined[start_index_shifted:end_index_shifted] += (previous_equity_end - transition_value)
+
+        current_sharpe_ratio = round(calculate_sharpe_ratio(equity_df_combined[start_index_shifted:end_index_shifted]), 4)
+        predicted_sharpe_ratio = round(sharpe_ratios[i - 1], 4)
+
+        print(f"\n--------- Division {i}/{n_divisions - 1} ------------")
+        print(f"Equity at start: ${round(equity_df_combined[start_index_shifted])}")
+        print(f"Equity at end: ${round(equity_df_combined[end_index_shifted-1])}")
+        print(f"Start date: {equity_df_combined.index[start_index_shifted].strftime('%Y-%m-%d')}")
+        print(f"End date: {equity_df_combined.index[end_index_shifted-1].strftime('%Y-%m-%d')}")
         print(f"Sharpe Ratio: {current_sharpe_ratio}")
         print(f"Predicted Sharpe Ratio: {predicted_sharpe_ratio}")
-        pprint(optimal_portfolios[i-1])
-
-    if equity_df_combined.isna().sum():
-        print(f"NaN occurrences in asset equity: {equity_df_combined.isna().sum()}")
-        print("Check for data alignment issues.")
+        pprint(optimal_portfolios[i - 1])
 
     equity_df_combined = equity_df_combined.loc[equity_df_combined != starting_balance].dropna()
-    equity_df_combined += starting_balance - equity_df_combined.iloc[0]
-    drawdown_df_combined = drawdown_df_combined.loc[drawdown_df_combined != starting_balance].dropna()
     adaptive_sharpe = calculate_sharpe_ratio(equity_df_combined)
     max_drawdown_index = drawdown_df_combined.idxmax().strftime('%Y-%m-%d')
 
-    print(f"\nFinal aggregated equity: ${round(equity_df_combined.iloc[-1])}")
+    print("\n--------- Aggregated Results ---------")
+    print(f"Final aggregated equity: ${round(equity_df_combined.iloc[-1])}")
     print(f"Return: {round(100 * (equity_df_combined.iloc[-1] - starting_balance) / starting_balance, 2)}%")
     print(f"Maximum aggregated drawdown: {round(drawdown_df_combined.max() * 100, 2)}% at date: {max_drawdown_index}")
     print(f"Adaptive Sharpe Ratio: {round(adaptive_sharpe, 2)}")

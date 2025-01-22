@@ -167,3 +167,8 @@ class Buy_After_Red_Day(Base_Strategy):
     def next(self) -> None:
         super().close_next_green_day()
         super().next()
+
+class Buy_After_Green_Day(Base_Strategy):
+    def next(self) -> None:
+        super().close_next_green_day()
+        super().next()
