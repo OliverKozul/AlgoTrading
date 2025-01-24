@@ -3,21 +3,17 @@
         "last_download_date": "2025-01-21",
         "last_backtest_date": "2025-01-22",
         "strategies": [
-            "Daily_Range",
-            "Buy_And_Hold",
-            "Solo_RSI",
             "ROC_Trend_Following_Bull",
-            "ROC_Trend_Following_Bear",
-            "ROC_Mean_Reversion",
-            "Buy_After_Red_Day",
-            "Buy_After_Green_Day",
-            "Buy_And_Holder"
+            "Daily_Range"
         ]
     },
     "nq": {
-        "last_download_date": "2021-07-01",
-        "last_backtest_date": "2021-07-01",
-        "strategies": []
+        "last_download_date": "2025-01-22",
+        "last_backtest_date": "2025-01-22",
+        "strategies": [
+            "ROC_Trend_Following_Bull",
+            "Daily_Range"
+        ]
     },
     "r2000": {
         "last_download_date": "2021-07-01",

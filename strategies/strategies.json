@@ -6,5 +6,7 @@
     "ROC_Trend_Following_Bear": 0,
     "ROC_Mean_Reversion": 0,
     "Buy_After_Red_Day": 0,
-    "Buy_After_Green_Day": 0
+    "Buy_After_Green_Day": 0,
+    "Shorting_RSI": 0,
+    "Combination": 0
 }

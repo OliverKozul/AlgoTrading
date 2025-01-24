@@ -28,6 +28,7 @@ def run_master_backtest(
 
     multiple_strategies = config['compare_strategies'] or config['optimize_portfolio'] or config['adaptive_portfolio'] or config['find_best'] or config['adaptive_strategy']
     new_results = False
+    unclean_symbols = symbols
     
     if (config['plot_results'] and len(symbols) > 10) or not plot_results:
         config['plot_results'] = False
@@ -36,7 +37,7 @@ def run_master_backtest(
         strategies = manager.dict(load_strategies_from_json('strategies\strategies.json'))
         community_strategies = manager.dict(load_strategies_from_json('strategies\community_strategies.json'))
         strategies.update(community_strategies)
-        # strategies = manager.dict({'Buy_After_Red_Day': 0})
+        # strategies = manager.dict({'ROC_Trend_Following_Bull': 0, 'Daily_Range': 0})
         stock_data = manager.dict(dm.fetch_data_or_load_cached(symbols))
 
         if multiple_strategies:
@@ -68,7 +69,7 @@ def run_master_backtest(
     log_all_results(results, strategies, find_best, optimize_portfolio, adaptive_portfolio)
 
     if multiple_strategies and new_results:
-        dm.save_results(results, list(strategies.keys()))
+        dm.save_results(results, list(strategies.keys()), unclean_symbols)
 
     return results
 
@@ -93,7 +94,7 @@ def run_backtest(
     start_index = int(start_percent * len(df))
     end_index = int(end_percent * len(df))
     df = df.iloc[start_index:end_index]
-    size = 0.5
+    size = 0.2
 
     df = dm.create_signals(df, strategy)
     result = gather_backtest_result(df, symbol, strategy, size, plot)

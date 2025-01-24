@@ -129,7 +129,7 @@ def load_cached_results(symbols: List[str], strategies: List[str]) -> Optional[L
 
     return results
 
-def save_results(results: List[Dict[str, Any]], strategies: List[str]) -> None:
+def save_results(results: List[Dict[str, Any]], strategies: List[str], symbols: List[str]) -> None:
     with open('data/index_info.json', 'r') as file:
         stock_data_info = json.load(file)
 
@@ -137,11 +137,11 @@ def save_results(results: List[Dict[str, Any]], strategies: List[str]) -> None:
 
     category = None
 
-    if results[0]['symbol'] in load_symbols('SP'):
+    if symbols == load_symbols('SP'):
         category = 'sp'
-    elif results[0]['symbol'] in load_symbols('NQ'):
+    elif symbols == load_symbols('NQ'):
         category = 'nq'
-    elif results[0]['symbol'] in load_symbols('R2000'):
+    elif symbols == load_symbols('R2000'):
         category = 'r2000'
 
     if category is None:
@@ -269,7 +269,7 @@ def create_roc_trend_following_bull_signals(df: pd.DataFrame, rocThreshold: int 
 
 @add_columns({'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14), 'roc': lambda df: ta.roc(df['Close'], length=60)})
 def create_roc_trend_following_bear_signals(df: pd.DataFrame, rocThreshold: int = -30) -> None:
-    df.loc[df['roc'] < rocThreshold, 'BUYSignal'] = 1
+    df.loc[df['roc'] < rocThreshold, 'BUYSignal'] = 2
 
 @add_columns({'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14), 'roc': lambda df: ta.roc(df['Close'], length=14)})
 def create_roc_mean_reversion_signals(df: pd.DataFrame, rocThreshold: int = -5) -> None:
@@ -286,3 +286,23 @@ def create_buy_after_red_day_signals(df: pd.DataFrame) -> None:
 @add_columns({'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14), 'prev_close': lambda df: df['Close'].shift(1), 'prev_open': lambda df: df['Open'].shift(1)})
 def create_buy_after_green_day_signals(df: pd.DataFrame) -> None:
     df.loc[df['prev_close'] > df['prev_open'], 'BUYSignal'] = 1
+
+@add_columns({'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14), 'rsi': lambda df: ta.rsi(df['Close'], length=14)})
+def create_shorting_rsi_signals(df: pd.DataFrame) -> None:
+    df.loc[df['rsi'] < 85, 'BUYSignal'] = 2
+
+@add_columns({
+    'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14),
+    'rsi': lambda df: ta.rsi(df['Close'], length=14),
+    'macd': lambda df: ta.macd(df['Close'], fast=12, slow=26, signal=9)['MACD_12_26_9'],
+    'ema_50': lambda df: ta.ema(df['Close'], length=50),
+    'ema_200': lambda df: ta.ema(df['Close'], length=200)
+})
+def create_combination_signals(df: pd.DataFrame) -> None:
+    df['BUYSignal'] = 0
+
+    # Buy signal: RSI below 30 and MACD above 0 and Close above EMA 50
+    df.loc[(df['rsi'] < 30) & (df['macd'] > 0) & (df['Close'] > df['ema_50']), 'BUYSignal'] = 1
+
+    # Sell signal: RSI above 70 and MACD below 0 and Close below EMA 200
+    df.loc[(df['rsi'] > 70) & (df['macd'] < 0) & (df['Close'] < df['ema_200']), 'BUYSignal'] = 2

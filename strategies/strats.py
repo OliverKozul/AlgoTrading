@@ -48,24 +48,40 @@ class Base_Strategy(Strategy):
 
     def next(self) -> None:
         if len(self.trades) == 0 and self.BUYSignal > 0:
-            buy_size = self.calculate_buy_size()
-            self.buy(size=buy_size)
+            trade_size = self.calculate_trade_size()
+
+            if self.BUYSignal == 1:
+                self.buy(size=trade_size)
+            elif self.BUYSignal == 2:
+                self.sell(size=trade_size)
 
     def next_with_tpsl(self) -> None:
         if len(self.trades) == 0 and self.BUYSignal > 0:
-            buy_size = self.calculate_buy_size()
-            tp = self.data.Close[-1] + self.tp_coef * self.atr[-1]
-            sl = max(0.01, self.data.Close[-1] - self.sl_coef * self.atr[-1])
-            self.buy(size=buy_size, tp=tp, sl=sl)
+            trade_size = self.calculate_trade_size()
+            if self.BUYSignal == 1:
+                tp = self.data.Close[-1] + self.tp_coef * self.atr[-1]
+                sl = max(0.01, self.data.Close[-1] - self.sl_coef * self.atr[-1])
+                self.buy(size=trade_size, tp=tp, sl=sl)
+            elif self.BUYSignal == 2:
+                tp = self.data.Close[-1] - self.tp_coef * self.atr[-1]
+                sl = max(0.01, self.data.Close[-1] + self.sl_coef * self.atr[-1])
+                self.sell(size=trade_size, tp=tp, sl=sl)
 
     def close_next_green_day(self) -> None:
         if len(self.trades) > 0 and self.data.Close[-1] > self.data.Open[-1]:
             for trade in self.trades:
-                trade.close()
+                if trade.is_long:
+                    trade.close()
 
-    def calculate_buy_size(self) -> float:
-        buy_size = self.size * (self.data.Close[-1] / (50 * self.atr[-1]))
-        return max(0.01, min(buy_size, 0.99))
+    def close_next_red_day(self) -> None:
+        if len(self.trades) > 0 and self.data.Close[-1] < self.data.Open[-1]:
+            for trade in self.trades:
+                if trade.is_short:
+                    trade.close()
+
+    def calculate_trade_size(self) -> float:
+        trade_size = self.size * (self.data.Close[-1] / (self.atr[-1] ** 2))
+        return max(0.01, min(trade_size, 0.99))
     
 class Trailing_Stop_Loss_Strategy(Base_Strategy):
     def init(self) -> None:
@@ -147,14 +163,7 @@ class ROC_Mean_Reversion(Base_Strategy):
         super().close_next_green_day()
         super().next()
 
-class Buy_And_Hold_2(Base_Strategy):
-    def init(self) -> None:
-        super().init()
-        
-    def next(self) -> None:
-        if len(self.trades) == 0:
-            self.buy(size=self.size)
-
+# Buy And Holder strategy
 class Buy_And_Holder(Base_Strategy):
     def init(self) -> None:
         super().init()
@@ -163,12 +172,28 @@ class Buy_And_Holder(Base_Strategy):
     def next(self) -> None:
         super().next()
 
+# Buy After Red Day strategy
 class Buy_After_Red_Day(Base_Strategy):
     def next(self) -> None:
         super().close_next_green_day()
         super().next()
 
+# Buy After Green Day strategy
 class Buy_After_Green_Day(Base_Strategy):
     def next(self) -> None:
         super().close_next_green_day()
         super().next()
+
+# Shorting RSI strategy
+class Shorting_RSI(Base_Strategy):
+    def next(self) -> None:
+        super().close_next_red_day()
+        super().next()
+
+# Combination strategy
+class Combination(Base_Strategy):
+    def next(self) -> None:
+        super().close_next_green_day()
+        super().close_next_red_day()
+        super().next()
+        

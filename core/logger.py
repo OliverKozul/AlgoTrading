@@ -1,5 +1,5 @@
 from core.plotter import plot, plot_divided
-from core.utils import calculate_sharpe_ratio, calculate_optimal_portfolio, calculate_adaptive_portfolio, calculate_weighted_sharpe_ratio_negative
+from core.utils import calculate_sharpe_ratio, calculate_optimal_portfolio, calculate_adaptive_portfolio
 from pprint import pprint
 import numpy as np
 import pandas as pd
@@ -20,7 +20,7 @@ def log_all_results(results: List[Dict[str, Any]], strategies: Dict[str, int], f
     if config['optimize_portfolio'] or optimize_portfolio:
         log_optimized_portfolio(results)
     elif config['adaptive_portfolio'] or adaptive_portfolio:
-        log_adaptive_portfolio(results, 5, 5)
+        log_adaptive_portfolio(results, 5, 10)
     else:
         log_aggregated_results(results)
 
@@ -137,8 +137,8 @@ def log_adaptive_portfolio(results: List[Dict[str, Any]], n_divisions: int = 4, 
         predicted_sharpe_ratio = round(sharpe_ratios[i - 1], 4)
 
         print(f"\n--------- Division {i}/{n_divisions - 1} ------------")
-        print(f"Equity at start: ${round(equity_df_combined[start_index_shifted])}")
-        print(f"Equity at end: ${round(equity_df_combined[end_index_shifted-1])}")
+        print(f"Equity at start: ${round(equity_df_combined.iloc[start_index_shifted])}")
+        print(f"Equity at end: ${round(equity_df_combined.iloc[end_index_shifted-1])}")
         print(f"Start date: {equity_df_combined.index[start_index_shifted].strftime('%Y-%m-%d')}")
         print(f"End date: {equity_df_combined.index[end_index_shifted-1].strftime('%Y-%m-%d')}")
         print(f"Sharpe Ratio: {current_sharpe_ratio}")
