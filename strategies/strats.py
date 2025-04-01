@@ -158,10 +158,13 @@ class ROC_Trend_Following_Bear(Trailing_Stop_Loss_Strategy):
 class ROC_Mean_Reversion(Base_Strategy):
     def init(self) -> None:
         super().init()
+        self.tp_coef = 2.5
+        self.sl_coef = 5
 
     def next(self) -> None:
-        super().close_next_green_day()
-        super().next()
+        # super().close_next_green_day()
+        # super().next()
+        super().next_with_tpsl()
 
 # Buy And Holder strategy
 class Buy_And_Holder(Base_Strategy):
@@ -190,10 +193,15 @@ class Shorting_RSI(Base_Strategy):
         super().close_next_red_day()
         super().next()
 
-# Combination strategy
-class Combination(Base_Strategy):
+# MACD Stoch RSI strategy
+class MACD_Stoch_RSI(Base_Strategy):
+    def init(self) -> None:
+        super().init()
+        self.tp_coef = 6
+        self.sl_coef = 6
+
     def next(self) -> None:
-        super().close_next_green_day()
-        super().close_next_red_day()
-        super().next()
+        # super().close_next_green_day()
+        # super().next()
+        super().next_with_tpsl()
         

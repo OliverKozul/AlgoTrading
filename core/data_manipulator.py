@@ -13,13 +13,12 @@ from strategies.strategy_tester import load_strategies_from_json
 
 def fetch_data(symbol: str, startDate: Optional[str] = None, endDate: Optional[str] = None) -> Optional[pd.DataFrame]:
     try:
-        df = yf.download(symbol, start=startDate, end=endDate, period='5y', interval='1d', progress=False)
+        df = yf.download(symbol, start=startDate, end=endDate, period='5y', interval='1d', progress=False, multi_level_index=False, auto_adjust=True)
         
         if df.empty:
             raise ValueError(f"No data found for symbol {symbol}")
         
         df = df.reset_index()
-        df.drop(columns=['Adj Close', 'Volume'], inplace=True)
         df.dropna(inplace=True)
         
         return df
@@ -30,7 +29,7 @@ def fetch_data(symbol: str, startDate: Optional[str] = None, endDate: Optional[s
 
 def fetch_data_multiple(symbols: List[str], startDate: Optional[str] = None, endDate: Optional[str] = None) -> Optional[pd.DataFrame]:
     try:
-        dfs = yf.download(symbols, start=startDate, end=endDate, period='5y', interval='1d', progress=False)
+        dfs = yf.download(symbols, start=startDate, end=endDate, period='5y', interval='1d', progress=False, multi_level_index=False, auto_adjust=True)
 
         if dfs.empty:
             raise ValueError("No data found for given symbols")
@@ -160,7 +159,7 @@ def load_symbols(category: str) -> Optional[List[str]]:
     if category == 'SP':
         return pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')[0]['Symbol'].tolist() + ['SPY']
     elif category == 'NQ':
-        return pd.read_html('https://en.wikipedia.org/wiki/Nasdaq-100')[4]['Symbol'].tolist()
+        return pd.read_html('https://en.wikipedia.org/wiki/Nasdaq-100')[4]['Ticker'].tolist()
     elif category == 'R2000':
         return pd.read_csv('data/R2000.csv').iloc[:, 0].tolist()
     elif category == 'futures':
@@ -234,7 +233,12 @@ def create_signals(df: pd.DataFrame, strategy: str) -> pd.DataFrame:
 
     signal_functions.get(strategy, lambda df: None)(df)
     df = df[int(-0.9 * len(df)):].copy()
-    df.set_index('Date', inplace=True)
+
+    if 'Date' in df.columns:
+        df.set_index('Date', inplace=True)
+    elif 'Datetime' in df.columns:
+        df.set_index('Datetime', inplace=True)
+        
     df.dropna(inplace=True)
 
     return df
@@ -271,9 +275,9 @@ def create_roc_trend_following_bull_signals(df: pd.DataFrame, rocThreshold: int 
 def create_roc_trend_following_bear_signals(df: pd.DataFrame, rocThreshold: int = -30) -> None:
     df.loc[df['roc'] < rocThreshold, 'BUYSignal'] = 2
 
-@add_columns({'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14), 'roc': lambda df: ta.roc(df['Close'], length=14)})
-def create_roc_mean_reversion_signals(df: pd.DataFrame, rocThreshold: int = -5) -> None:
-    df.loc[df['roc'] < rocThreshold, 'BUYSignal'] = 1
+@add_columns({'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14), 'roc': lambda df: ta.roc(df['Close'], length=10), 'prev_roc': lambda df: ta.roc(df['Close'], length=14).shift(1)})
+def create_roc_mean_reversion_signals(df: pd.DataFrame, rocThreshold: int = -3) -> None:
+    df.loc[(df['roc'] < rocThreshold) & (df['roc'] > df['prev_roc']), 'BUYSignal'] = 1
 
 @add_columns({'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14), 'ema': lambda df: ta.ema(df['Close'], length=1)})
 def create_buy_and_holder_signals(df: pd.DataFrame) -> None:
@@ -293,16 +297,20 @@ def create_shorting_rsi_signals(df: pd.DataFrame) -> None:
 
 @add_columns({
     'atr': lambda df: ta.atr(df['High'], df['Low'], df['Close'], length=14),
-    'rsi': lambda df: ta.rsi(df['Close'], length=14),
     'macd': lambda df: ta.macd(df['Close'], fast=12, slow=26, signal=9)['MACD_12_26_9'],
-    'ema_50': lambda df: ta.ema(df['Close'], length=50),
-    'ema_200': lambda df: ta.ema(df['Close'], length=200)
+    'macd_signal': lambda df: ta.macd(df['Close'], fast=12, slow=26, signal=9)['MACDs_12_26_9'],
+    'stoch_k': lambda df: ta.stoch(df['High'], df['Low'], df['Close'])['STOCHk_14_3_3'],
+    'stoch_d': lambda df: ta.stoch(df['High'], df['Low'], df['Close'])['STOCHd_14_3_3'],
+    'rsi': lambda df: ta.rsi(df['Close'], length=14),
+    'rsi_sma': lambda df: ta.rsi(df['Close'], length=14).rolling(window=14).mean()
 })
-def create_combination_signals(df: pd.DataFrame) -> None:
-    df['BUYSignal'] = 0
+def create_macd_stoch_rsi_signals(df: pd.DataFrame) -> None:
+    df['macd_crossover'] = (df['macd'] > df['macd_signal']) & (df['macd'].shift(1) <= df['macd_signal'].shift(1))
+    df['stoch_in_range'] = (df['stoch_k'] > 20) & (df['stoch_k'] < 80)
+    df['stoch_recently_below_20'] = df['stoch_k'].rolling(window=10).min().shift(1) < 20
+    df['rsi_above_sma'] = df['rsi'] > df['rsi_sma']
 
-    # Buy signal: RSI below 30 and MACD above 0 and Close above EMA 50
-    df.loc[(df['rsi'] < 30) & (df['macd'] > 0) & (df['Close'] > df['ema_50']), 'BUYSignal'] = 1
-
-    # Sell signal: RSI above 70 and MACD below 0 and Close below EMA 200
-    df.loc[(df['rsi'] > 70) & (df['macd'] < 0) & (df['Close'] < df['ema_200']), 'BUYSignal'] = 2
+    df.loc[
+        df['macd_crossover'] & df['stoch_in_range'] & df['stoch_recently_below_20'] & df['rsi_above_sma'],
+        'BUYSignal'
+    ] = 1

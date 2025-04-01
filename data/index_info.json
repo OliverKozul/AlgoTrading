@@ -1,10 +1,19 @@
 {
     "sp": {
-        "last_download_date": "2025-01-21",
-        "last_backtest_date": "2025-01-22",
+        "last_download_date": "2025-04-01",
+        "last_backtest_date": "2025-02-13",
         "strategies": [
+            "Daily_Range",
+            "Buy_And_Hold",
+            "Solo_RSI",
             "ROC_Trend_Following_Bull",
-            "Daily_Range"
+            "ROC_Trend_Following_Bear",
+            "ROC_Mean_Reversion",
+            "Buy_After_Red_Day",
+            "Buy_After_Green_Day",
+            "Shorting_RSI",
+            "MACD_Stoch_RSI",
+            "Buy_And_Holder"
         ]
     },
     "nq": {
@@ -16,8 +25,10 @@
         ]
     },
     "r2000": {
-        "last_download_date": "2021-07-01",
-        "last_backtest_date": "2021-07-01",
-        "strategies": []
+        "last_download_date": "2025-02-01",
+        "last_backtest_date": "2025-02-01",
+        "strategies": [
+            "MACD_Stoch_RSI"
+        ]
     }
 }

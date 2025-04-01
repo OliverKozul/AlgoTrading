@@ -6,7 +6,6 @@ from backtesting import Backtest
 from multiprocessing import Pool, Manager, cpu_count
 from core.logger import log_all_results
 from typing import List, Dict, Any, Optional
-import time
 
 
 def load_strategies_from_json(file_path: str) -> Dict[str, Any]:
@@ -37,7 +36,8 @@ def run_master_backtest(
         strategies = manager.dict(load_strategies_from_json('strategies\strategies.json'))
         community_strategies = manager.dict(load_strategies_from_json('strategies\community_strategies.json'))
         strategies.update(community_strategies)
-        # strategies = manager.dict({'ROC_Trend_Following_Bull': 0, 'Daily_Range': 0})
+        # strategies = manager.dict({'ROC_Trend_Following_Bull': 0})
+        # strategies = manager.dict({'MACD_Stoch_RSI': 0})
         stock_data = manager.dict(dm.fetch_data_or_load_cached(symbols))
 
         if multiple_strategies:

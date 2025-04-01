@@ -20,7 +20,7 @@ def log_all_results(results: List[Dict[str, Any]], strategies: Dict[str, int], f
     if config['optimize_portfolio'] or optimize_portfolio:
         log_optimized_portfolio(results)
     elif config['adaptive_portfolio'] or adaptive_portfolio:
-        log_adaptive_portfolio(results, 5, 10)
+        log_adaptive_portfolio(results, 4, 10)
     else:
         log_aggregated_results(results)
 
@@ -107,8 +107,9 @@ def log_adaptive_portfolio(results: List[Dict[str, Any]], n_divisions: int = 4, 
         end_index_shifted = end_index - division_length
 
         previous_equity_end = equity_df_combined.iloc[start_index_shifted - 1] if start_index_shifted > 0 else starting_balance
+        portfolio = optimal_portfolios[i - 1]
 
-        for symbol, data in optimal_portfolios[i - 1].items():
+        for symbol, data in portfolio.items():
             current_results = [
                 result for result in results
                 if result['symbol'] == symbol and result['strategy'] in [df['strategy'] for df in data]
@@ -125,6 +126,7 @@ def log_adaptive_portfolio(results: List[Dict[str, Any]], n_divisions: int = 4, 
                     if strategy['strategy'] == current_result['strategy']:
                         equity = equity_curve_adjusted[start_index:end_index] * strategy['weight']
                         drawdown = drawdown_curve_adjusted[start_index:end_index] * strategy['weight']
+                        strategy['sharpe'] = round(calculate_sharpe_ratio(equity_curve[start_index:end_index]), 4)
 
                         equity_df_combined[start_index_shifted:end_index_shifted] += equity
                         drawdown_df_combined[start_index_shifted:end_index_shifted] += drawdown
